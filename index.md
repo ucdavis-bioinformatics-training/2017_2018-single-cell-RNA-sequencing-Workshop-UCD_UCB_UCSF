@@ -12,6 +12,7 @@ Monday
 * [Single Cell Technologies]() (Eric Chow, UCSF talk)
 * Lunch - Sponsored by Takara
 * Takara Technology talk
+* [Working on a cluster](monday/cluster.md)
 * [Intro to R](friday/Intro2R.md)
 
 Tuesday
