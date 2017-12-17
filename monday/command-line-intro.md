@@ -99,7 +99,7 @@ One reason you'll appreciate 'less' is that it's the default paginator for the '
 
 The filesystem you're working on is like the branching root system of a tree (image borrowed from web.sonoma.edu):
 
-![filesystem-example](filesystem.png)
+![filesystem-example](figures/filesystem.png)
 
 The top level, right at the root of the tree, is called the "root" directory, specified by '/' ... which is also the divider for directory addresses, or "paths." (Note that there's also often a directory named "root" just under the filesystem root ... this is for the "root user" or "superuser" ... but here we're talking about the true filesystem root, '/'). We move around using the "change directory" command, 'cd':
 
@@ -487,7 +487,7 @@ Finally, the 'nohup' command (from "no hangup"!) makes jobs extra resistant to l
 
 The 'top' command prints a self-updating table of running processes and system stats. Use 'q' to exit top, 'z' to toggle better color contrast, 'M' to sort by memory use, 'P' to sort by processor use, and 'c' to toggle display of the full commands. Hit '1' to toggle display of all processors, and hit 'u' followed by typing in a username in order to only show processes (jobs) owned by that user.
 
-![top-example](top.png)
+![top-example](figures/top.png)
 
 
 ### Shell Scripts, File Permissions

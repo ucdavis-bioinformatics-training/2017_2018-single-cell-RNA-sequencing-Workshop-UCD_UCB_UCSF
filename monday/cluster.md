@@ -7,7 +7,7 @@ najoshi@ucdavis.edu
 
 **1\.** Here at the UC Davis Bioinformatics Core we have a large computational cluster (named cabernet) that we use for our analyses. The job scheduling system we use on this cluster is called [Slurm](https://slurm.schedmd.com/). In this section, we will go through examples of the commands we will be using to interact with the cluster. First, what is a cluster?
 
-![cluster diagram](cluster_diagram.png)
+![cluster diagram](figures/cluster_diagram.png)
 
 The basic architecture of a compute cluster consists of a "head node", which is the computer from which a user submits jobs to run, and "compute nodes", which are a large number of computers on which the jobs can be run. It is also possible to log into a compute node and run jobs directly from there. **Never run a job directly on the head node!** However, that being said, we will be logging into a server that isn't the head node in order to run our jobs. This server (ganesh.genomecenter.ucdavis.edu) is owned by the Bioinformatics Core and can be used to run jobs on the cluster and can also be used to run jobs directly on it.
 
@@ -33,7 +33,7 @@ This command is requesting a compute node with a time limit of 1440 minutes (i.e
 
 Generally, we do not use any options for sbatch... we typically give it a script (i.e. a text file with commands inside) to run. Let's take a look at a template script:
 
-    wget https://ucdavis-bioinformatics-training.github.io/2017-September-Microbial-Community-Analysis-Workshop/wednesday/example.slurm
+    wget https://ucdavis-bioinformatics-training.github.io/2017_2018-single-cell-RNA-sequencing-Workship-UCD_UCB_UCSF/monday/example.slurm
 
     cat example.slurm
 
