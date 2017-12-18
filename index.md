@@ -7,17 +7,19 @@
 Monday
 ----------
 * [Introduction](monday/Introduction.pdf)
+* [Bioinformatics](monday/What_is_Bioinformatics.pdf)
 * [Logging In and transferring files](monday/logging-in)
 * [Intro to command-line](monday/command-line-intro)
 * [Single Cell Technologies]() (Eric Chow, UCSF talk)
 * Lunch - Sponsored by Takara
 * Takara Technology talk
 * [Working on a cluster](monday/cluster.md)
-* [Intro to R](friday/Intro2R.md)
+* [Generating an expression matrix from 10x sc data](monday/Expression_Matrix.md)
 
 Tuesday
 ----------
-
+* [Intro to R](friday/Intro2R.md)
+* [Dataset Introduction]() (Carrie Finno, UCD talk)
 * Lunch - Sponsored by Illumina
 * Illumina Technology talk
 
