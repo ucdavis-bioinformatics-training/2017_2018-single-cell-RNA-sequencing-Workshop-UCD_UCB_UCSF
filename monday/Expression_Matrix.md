@@ -28,7 +28,8 @@ After aligning sequence data to the genome we should evaluate the quality of the
 ### Gene Counting
 
 STAR, Kallisto, and Salmon all quantify the expression level of each gene for
-each cell as a part of its output.
+each cell as a part of its output. If UMIs were used, duplicates need to be first marked and then gene expression levels recounted. The packages (`UMI-tools`)[https://github.com/CGATOxford/UMI-tools) can be used to process and correct UMIs.
+
 
 
 
@@ -67,8 +68,9 @@ __Full-length__ capture tries to achieve a uniform coverage of each transcript (
 – The more information desired beyond expression, the higher the reads needed per cell (~50K reads/cell to 10M reads/cell)
 
 
-For smaller experiment < 5000 cells , the R packages [`SingleCellExperiment`](http://bioconductor.org/packages/SingleCellExperiment) and [`scater`](http://bioconductor.org/packages/scater/) are good choices.
+For smaller experiment < 5000 cells, the R packages [`SingleCellExperiment`](http://bioconductor.org/packages/SingleCellExperiment), [`scater`](http://bioconductor.org/packages/scater/), [`SC3`](http://bioconductor.org/packages/release/bioc/html/SC3.html) are good choices. For larget experiments (> 5000 cells), the R package [`Seurat`](http://satijalab.org/seurat/) offers a complete solution.
 
+A nice page keeping track of single-cell software can be found [here](https://github.com/seandavi/awesome-single-cell).
 
 ## 10X Genomics generation of expression matrix with cellranger
 
@@ -81,6 +83,9 @@ For smaller experiment < 5000 cells , the R packages [`SingleCellExperiment`](ht
 <p class="caption">Elements to a 10x read</p>
 </div>
 
+If using cellranger,
+1. cellranger mkfastq
+2. cellranger count
 
 ### Cell barcode and UMI filtering
 
@@ -192,13 +197,14 @@ Summary of the alignment and assignment of reads to cells and genes are present 
 
 	/share/biocore/workshops/2017_2018-single-cell-RNA-sequencing-Workshop-UCD_UCB_UCSF
 
-3. Review cellranger's sub-application and help docs
+3. Review cellranger's sub-applications and help docs
 
 4. Review the [1-mkfastq.slurm](1-mkfastq.slurm) script used to generate fastq files from Illumina run output file.
 
 	1. In the folder 2017_10X_mouse_comparative, which output folders/files were generated from this script?
 	2. Copy over the Reports folder and review it
 	3. Using zless review the first set of reads from sample 654 
+ 	4. If time remain, mock run the script.
 
 5. Review the [2-counts.slurm](2-counts.slurm) script used to map fastq files.
 
@@ -219,7 +225,11 @@ samtools flagstat possorted_genome_bam.bam
 samtools stats possorted_genome_bam.bam
 ```
  	4. head the files under raw_gene_bc_matrices and filtered_gene_bc_matrices
+ 	5. If time remain, mock run the script.
 
-6. Copy the file and extract. Review [transfer](logging-in.md) if needed.
+6. Run a testrun of cellranger in your home directory
+	1. view the output
+
+7. Copy the file and extract. Review [transfer](logging-in.md) if needed.
 
 	/share/biocore/workshops/2017_2018-single-cell-RNA-sequencing-Workshop-UCD_UCB_UCSF/expression_tables.tar.gz

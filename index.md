@@ -10,7 +10,7 @@ Monday
 * [Bioinformatics](monday/What_is_Bioinformatics.pdf)
 * [Logging In and transferring files](monday/logging-in)
 * [Intro to command-line](monday/command-line-intro)
-* [Single Cell Technologies]() (Eric Chow, UCSF talk)
+* [Single Cell Technologies](monday/UCD single cell technology informatics talk.pdf) (Eric Chow, UCSF talk)
 * Lunch - Sponsored by Takara
 * Takara Technology talk
 * [Working on a cluster](monday/cluster.md)
