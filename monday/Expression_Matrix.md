@@ -236,4 +236,4 @@ cellranger testrun
 
 ---
 
-[Commands](monday/commands.txt) used in class
+[Commands](commands.txt) used in class
