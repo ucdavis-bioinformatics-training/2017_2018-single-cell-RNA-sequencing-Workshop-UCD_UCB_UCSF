@@ -1,0 +1,423 @@
+---
+title: "single cell 10x single-cell analysis"
+output:
+  html_document:
+    keep_md: true
+---
+
+[Seurat](http://satijalab.org/seurat/) is a popular R package that is designed for QC, analysis, and exploration of single cell RNA-seq data. Seurat aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. Further, the authors provide several [tutorials](http://satijalab.org/seurat/get_started.html), on their website.
+
+Dowload and expand the expression_tables.tar.gz file to extract the single cell matrix files for the three samples. These are isolated mouse cells ran on the 10X genomics platform for single cell RNA sequencing, sequenced with UC Davis on 1 HiSeq 4000.
+
+* sample1, UCD_VitE_Def
+* sample2, UCD_Supp_VitE
+* sample3, UCD_Adj_VitE
+
+We start with loading needed libraries for R, at this time all we need is the package [Seurat](http://satijalab.org/seurat/).
+```{r, warning=FALSE,echo=FALSE}
+library(Seurat)
+```
+
+## Load the Cell Ranger Matrix Data and create the base Seurat object.
+Cell Ranger provides a function `cellranger aggr` that will combine multiple samples into a single matrix file. However, when processing data in R and Seurat this is unnecessary and we can aggregate them in R.
+
+Seurat provides a function `Read10X` to read in 10X data folder. First we read in data from each individual sample folder. First, we initialize the Seurat object (`CreateSeuratObject`) with the raw (non-normalized data). Keep all genes expressed in >= 10 cells. Keep all cells with at least 200 detected genes. Also extracting sample names, calculating and adding in the metadata mitochondrial percentage of each cell. Adding in the metadata batchid. Finally, saving the raw Seurat object.
+```{r}
+## Dataset for analysis
+dataset_loc <- "expression_tables"
+ids <- c("sample1", "sample2", "sample3")
+
+d10x.data <- sapply(ids, function(i){
+  d10x <- Read10X(file.path(dataset_loc,i,"outs/filtered_gene_bc_matrices/mm10/"))
+  colnames(d10x) <- paste(sapply(strsplit(colnames(d10x),split="-"),'[[',1L),i,sep="-")
+  d10x
+})
+
+experiment.data <- do.call("cbind", d10x.data)
+
+experiment.aggregate <- CreateSeuratObject(
+  experiment.data,
+  project = "scRNA workshop", 
+  min.cells = 10,
+  min.genes = 200,
+  names.field = 2,
+  names.delim = "\\-")
+```
+Calculate percent mitochondrial genes per cell. In mouse these genes can be identified as those that begin with 'mt', in human data they begin with MT.
+```{r}
+mito.genes <- grep("^mt-", rownames(experiment.aggregate@data), value = T)
+percent.mito <- Matrix::colSums(experiment.aggregate@raw.data[mito.genes, ]) / Matrix::colSums(experiment.aggregate@raw.data)
+
+# AddMetaData adds columns to object@data.info, and is a great place to stash QC stats
+experiment.aggregate <- AddMetaData(
+  object = experiment.aggregate,
+  metadata = percent.mito,
+  col.name= "percent.mito")
+```
+
+The original samples names (the names above in ids) can be found in the metadata slot, column orig.ident. Here we build a new metadata variable 'batchid' which can be used to specify treatment groups.
+```{r}
+samplename = experiment.aggregate@meta.data$orig.ident
+table(samplename)
+
+batchid = rep("UCD_VitE_Def",length(samplename))
+batchid[samplename %in% c("sample2")] = "UCD_Supp_VitE"
+batchid[samplename %in% c("sample3")] = "UCD_Adj_VitE"
+names(batchid) = rownames(experiment.aggregate@meta.data)
+
+experiment.aggregate <- AddMetaData(
+  object = experiment.aggregate,
+  metadata = batchid,
+  col.name = "batchid")
+```
+
+Finally, save the original object, write out a tab-delimited table that could be read into excel, and view the object.
+```{r}
+## Original dataset in Seurat class, with no filtering
+save(experiment.aggregate,file="original_seurat_object.RData")
+# write.table(as.matrix(experiment.data),"raw.datatable.txt",sep="\t",col.names=T,row.names=T)
+experiment.aggregate
+```
+
+### Lets spend a little time getting to know the Seurat object.
+
+The Seurat object is the center of each single cell analysis. It stores __all__ information associated with the dataset, including data, annotations, analyes, etc. The R function slotNames can be used to view the slot names within an object.
+
+```{r}
+slotNames(experiment.aggregate)
+```
+
+We can then few the data within a slot with the `@` operator.
+```{r}
+head(experiment.aggregate@meta.data)
+```
+
+```{r}
+table(experiment.aggregate@meta.data$orig.ident)
+```
+
+## Some basic QA/QC of the metadata, print tables of the 5% quantiles.
+
+Show 5% qunatiles for number of genes per cell per sample
+```{r}
+do.call("cbind", tapply(experiment.aggregate@meta.data$nGene,experiment.aggregate@ident,quantile,probs=seq(0,1,0.05)))
+```
+
+Show 5% qunatiles for number of UMI per cell per sample
+```{r}
+do.call("cbind", tapply(experiment.aggregate@meta.data$nUMI,experiment.aggregate@ident,quantile,probs=seq(0,1,0.05)))
+```
+
+Show 5% qunatiles for number of mitochondrial percentage per cell per sample
+```{r}
+round(do.call("cbind", tapply(experiment.aggregate@meta.data$percent.mito,experiment.aggregate@ident,quantile,probs=seq(0,1,0.05))), digits = 3)
+```
+
+Plot the number of cells each gene is represented by
+```{r}
+plot(sort(Matrix::rowSums(experiment.aggregate@data>=2)) , xlab="gene rank", ylab="number of cells", main="Cells per genes ( >= 2 )")
+```
+
+Violin plot of 1) number of genes, 2) number of UMI and 3) percent mitochondrial genes
+```{r, fig.height=20}
+VlnPlot(
+  experiment.aggregate,
+  c("nGene", "nUMI","percent.mito"),
+  nCol = 1)
+```
+
+Gene Plot, scatter plot of gene expression across cells, (colored by sample)
+```{r}
+GenePlot(
+  experiment.aggregate, "nUMI", "nGene",
+  cex.use = 0.5)
+```
+
+### Cell filtering
+We use the information above to filter out cells. Here we choose those that have percent mitochondrial genes max of 10% and unique UMI counts under 20,000 or greater than 500, Note that low.thresholds and high.thresholds are used to define a 'gate' -Inf and Inf should be used if you don't want a lower or upper threshold.
+
+```{r}
+experiment.aggregate <- FilterCells(
+  object = experiment.aggregate,
+  subset.names = c("percent.mito"),
+  low.thresholds = c(-Inf),
+  high.thresholds = c(0.1))
+
+experiment.aggregate <- FilterCells(
+  object = experiment.aggregate,
+  subset.names = c("nUMI"),
+  low.thresholds = c(500),
+  high.thresholds = c(20000))
+
+experiment.aggregate@data
+```
+
+```{r}
+table(experiment.aggregate@meta.data$orig.ident)
+```
+
+## Next we want to normalize the data
+
+After filtering out cells from the dataset, the next step is to normalize the data. By default, we employ a global-scaling normalization method LogNormalize that normalizes the gene expression measurements for each cell by the total expression, multiplies this by a scale factor (10,000 by default), and then log-transforms the data.
+
+```{r}
+experiment.aggregate <- NormalizeData(
+  object = experiment.aggregate,
+  normalization.method = "LogNormalize",
+  scale.factor = 10000)
+```
+
+### You may also want to filter out additional genes.
+
+When creating the base Seurat object we did filter out some genes, recall _Keep all genes expressed in >= 10 cells_. After filtering cells and you may want to be more aggressive with the gene filter. Seurat doesn't supply such a function (that I can find), so below is a function that can do so, it filters genes requiring a min.value (log-normalized) in at least min.cells, here expression of 1 in at least 100 cells.
+
+```{r}
+FilterGenes <- 
+function (object, min.value=1, min.cells = 0, genes = NULL) {
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FilterGenes"))]
+  object <- Seurat:::SetCalcParams(object = object, calculation = "FilterGenes", ... = parameters.to.store)
+  genes.use <- rownames(object@data)
+
+  if (!is.null(genes)) {
+    genes.use <- intersect(genes.use, genes)
+    object@data <- object@data[genes.use, ]
+    return(object)
+  } else if (min.cells > 0) {
+    num.cells <- Matrix::rowSums(object@data > min.value)
+    genes.use <- names(num.cells[which(num.cells >= min.cells)])
+    object@data <- object@data[genes.use, ]
+    return(object)
+  } else {
+    return(object)
+  }
+}
+
+experiment.aggregate <- FilterGenes(object = experiment.aggregate, min.value = 1, min.cells = 100)
+experiment.aggregate@data
+```
+
+## Identify variable genes
+
+The function FindVariableGenes calculates highly variable genes (genes that are outliers on a 'mean variability plot') that can be used to focus on these for downstream analysis.  First, uses a function to calculate average expression (mean.function) and dispersion (dispersion.function) for each gene. Next, divides genes into num.bin (deafult 20) bins based on their average expression, and calculates z-scores for dispersion within each bin. The purpose of this is to identify variable genes while controlling for the strong relationship between variability and average expression. This helps control for the relationship between variability and average expression.
+
+```{r}
+experiment.aggregate <- FindVariableGenes(
+  object = experiment.aggregate,
+  mean.function = ExpMean,
+  dispersion.function = LogVMR,
+  x.low.cutoff = 0.125,
+  x.high.cutoff = 4,
+  y.cutoff = 0.5)
+
+length(experiment.aggregate@var.genes)
+```
+
+Lets save the filtered and normalized data
+```{r}
+save(experiment.aggregate, file="pre_sample_corrected.RData")
+```
+
+## Batch effects
+
+ScaleData - Scales and centers genes in the dataset. If variables are provided in vars.to.regress, they are individually regressed against each gene, and the resulting residuals are then scaled and centered. Here we use only the highly variable genes identified above and then regress out for sample (orig.ident), sequencing depth (nUMI) and percentage mitochondria (percent.mito).
+
+```{r}
+experiment.aggregate <- ScaleData(
+  object = experiment.aggregate,
+  genes.use=experiment.aggregate@var.genes,
+  vars.to.regress = c("orig.ident", "nUMI","percent.mito"))
+```
+
+## Dimensionality reduction with PCA 
+
+Next we perform PCA on the scaled data. By default, the genes in object@var.genes are used as input, but can be alternatively defined. Running dimensionality reduction on highly variable genes can improve performance. 
+
+```{r}
+experiment.aggregate <- RunPCA(
+  object = experiment.aggregate,
+  pc.genes = experiment.aggregate@var.genes,
+  do.print = TRUE,
+  pcs.print = 1:5,
+  genes.print = 5,
+  pcs.compute = 40,
+  maxit = 500)
+
+PrintPCAParams(experiment.aggregate)
+```
+
+Seurat then provides a number of ways to visualize the PCA results
+```{r}
+PCAPlot(
+  object = experiment.aggregate,
+  dim.1 = 1,
+  dim.2 = 2 )
+```
+
+Visualize top genes associated with principal components
+```{r}
+VizPCA(
+  object = experiment.aggregate,
+  pcs.use=1:2
+)
+```
+
+Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
+
+```{r}
+PCHeatmap(
+    object = experiment.aggregate, 
+    pc.use = 1:40, 
+    cells.use = 500, 
+    do.balanced = TRUE, 
+    label.columns = FALSE,
+    use.full = FALSE
+)
+```
+
+### Selecting which PCs to use
+To overcome the extensive technical noise in any single gene, Seurat clusters cells based on their PCA scores, with each PC essentially representing a metagene that combines information across a correlated gene set. Determining how many PCs to include downstream is therefore an important step. 
+
+PCElbowPlot plots the standard deviations (or approximate singular values if running PCAFast) of the principle components for easy identification of an elbow in the graph. This elbow often corresponds well with the significant PCs and is much faster to run.
+
+```{r}
+PCElbowPlot(
+  experiment.aggregate,
+  num.pc = 40)
+```
+
+The JackStraw function randomly permutes a subset of data, and calculates projected PCA scores for these 'random' genes. Then compares the PCA scores for the 'random' genes with the observed PCA scores to determine statistical signifance. End result is a p-value for each gene's association with each principal component. We identify significant PCs as those who have a strong enrichment of low p-value genes.
+
+__WARNING: TAKES A LONG TIME TO RUN__
+```{r}
+experiment.aggregate <- JackStraw(
+    object = experiment.aggregate, 
+    num.replicate = 100, 
+    num.pc = 40,
+    do.print = FALSE
+)
+```
+
+```{r}
+JackStrawPlot(object = experiment.aggregate, PCs = 1:40)
+```
+
+Looking at the results of the JackStraw plot, we determine to use the first 35 PCs
+```{r}
+use.pcs = 1:35
+```
+
+## Identifying clusters
+
+__WARNING: TAKES A LONG TIME TO RUN__
+```{r}
+experiment.aggregate <- FindClusters(
+    object = experiment.aggregate, 
+    reduction.type = "pca", 
+    dims.use = use.pcs, 
+    resolution = seq(0.5,4,0.5), 
+    print.output = FALSE, 
+    save.SNN = TRUE
+)
+PrintFindClustersParams(object = experiment.aggregate)
+```
+
+```{r}
+sapply(grep("^res",colnames(experiment.aggregate@meta.data),value = TRUE),function(x) length(unique(experiment.aggregate@meta.data[,x])))
+
+experiment.aggregate <- SetAllIdent(experiment.aggregate, id = "res.0.5")
+
+table(experiment.aggregate@ident,experiment.aggregate@meta.data$orig.ident)
+```
+
+```{r}
+experiment.aggregate <- RunTSNE(
+  object = experiment.aggregate,
+  reduction.use = "pca",
+  dims.use = 1:35,
+  do.fast = TRUE)
+
+TSNEPlot(object = experiment.aggregate, pt.size=0.5)
+
+TSNEPlot(object = experiment.aggregate, group.by="orig.ident", pt.size=0.5)
+TSNEPlot(object = experiment.aggregate, group.by="res.0.5", pt.size=0.5, do.label = TRUE)
+```
+
+```{r}
+FeaturePlot(experiment.aggregate, features.plot=c('nUMI'), pt.size=0.5)
+```
+
+```{r}
+FeaturePlot(experiment.aggregate, features.plot=c('nGene'), pt.size=0.5)
+```
+
+```{r}
+FeaturePlot(experiment.aggregate, features.plot=c('percent.mito'), pt.size=0.5)
+```
+
+```{r}
+experiment.aggregate <- BuildClusterTree(experiment.aggregate, do.reorder = F, reorder.numeric = F, do.plot=F)
+
+PlotClusterTree(experiment.aggregate)
+ColorTSNESplit(experiment.aggregate, node = 30)
+# Merged clusters, not working correctly
+#pbmc_small <- RenameIdent(
+#  object = pbmc_small,
+#  old.ident.name = 0,
+#  new.ident.name = 'cluster_0'
+#)
+experiment.merged <- MergeNode(experiment.aggregate, node=30, rebuild.tree = F)
+TSNEPlot(object = experiment.merged, pt.size=0.5, do.label = T)
+```
+
+```{r}
+markers = FindMarkers(experiment.aggregate, ident.1=7)
+# FindAllMarkers
+# FindAllMarkersNode
+
+VlnPlot(object = experiment.aggregate, features.plot = rownames(markers)[1:2])
+
+head(rownames(markers)) 
+
+FeaturePlot(
+    experiment.aggregate, 
+    head(rownames(markers)), 
+    cols.use = c("lightgrey", "blue"), 
+    nCol = 3
+)
+```
+
+```{r}
+#markers_all <- FindAllMarkers(
+#    object = experiment.aggregate, 
+#    only.pos = TRUE, 
+#    min.pct = 0.25, 
+#    thresh.use = 0.25
+#)
+```
+
+```{r}
+#library(dplyr)
+#top10 <- markers_all %>% group_by(cluster) %>% top_n(10, avg_logFC)
+#DoHeatmap(
+#    object = experiment.aggregate, 
+#    genes.use = top10$gene, 
+#    slim.col.label = TRUE, 
+#    remove.key = TRUE
+#)
+```
+## SAMPLE SUBSETTING, example
+```{r}
+#experiment.sample2 <- SubsetData(
+#  object = experiment.aggregate,
+#  subset.name="orig.ident",
+#  ident.use =c("sample2"))
+#TSNEPlot(object = experiment.sample2, group.by="res.0.5", pt.size=0.5, do.label = TRUE)
+
+#FeaturePlot(experiment.sample2, features.plot=c('Calca'), pt.size=0.5)
+#FeaturePlot(experiment.sample2, features.plot=c('Adcyap1'), pt.size=0.5)
+```
+
+Session Information
+```{r}
+sessionInfo()
+```

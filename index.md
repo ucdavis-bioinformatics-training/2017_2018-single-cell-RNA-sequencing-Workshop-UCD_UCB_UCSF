@@ -18,10 +18,11 @@ Monday
 
 Tuesday
 ----------
-* [Intro to R](friday/Intro2R.md)
+* [Intro to R](tuesday/Intro2R.md)
 * [Dataset Introduction]() (Carrie Finno, UCD talk)
 * Lunch - Sponsored by Illumina
 * Illumina Technology talk
+* [Seurat Analysis](tuesday/scRNA_Workshop.md)
 
 Wednesday
 ----------
