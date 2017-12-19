@@ -213,8 +213,9 @@ Summary of the alignment and assignment of reads to cells and genes are present 
 		3. Sequencing Saturation?
 		4. Mean Reads per Cell?
 		5. Median UMI Counts per Cell?
-			A pretty version can be found in their html output [report](web_summary.html).
- 	3. Using samtools and rseqc evaluate the mapping file
+ 	3. head the files under raw_gene_bc_matrices and filtered_gene_bc_matrices
+ 	4. If time remain, mock run the script.
+ 	5. Using samtools and rseqc evaluate the mapping file
 ```
 module load rseqc
 module load samtools
@@ -222,8 +223,6 @@ bam_stat.py -i possorted_genome_bam.bam
 samtools flagstat possorted_genome_bam.bam
 samtools stats possorted_genome_bam.bam
 ```
- 	4. head the files under raw_gene_bc_matrices and filtered_gene_bc_matrices
- 	5. If time remain, mock run the script.
 
 6. Run a testrun of cellranger in your home directory _cellranger testrun_
 	1. view the output
