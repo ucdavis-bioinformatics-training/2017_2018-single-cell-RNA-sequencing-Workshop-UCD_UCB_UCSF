@@ -31,8 +31,6 @@ STAR, Kallisto, and Salmon all quantify the expression level of each gene for
 each cell as a part of its output. If UMIs were used, duplicates need to be first marked and then gene expression levels recounted. The packages (`UMI-tools`)[https://github.com/CGATOxford/UMI-tools) can be used to process and correct UMIs.
 
 
-
-
 Specific steps to be performed are dependant on the type of library, the element layout of the read, and the sequencing parameters.
 
 ## scRNAseq Libraries
@@ -56,16 +54,16 @@ Differences between the methods are are in how they capture and quantify gene ex
 __Full-length__ capture tries to achieve a uniform coverage of each transcript (many reads per transcript. __Tag-based__ protocols only capture either the 5'- or 3'-end of each RNA (single read per transcript). Choice in method determines what types of analyses the data can be used for. __Full-length__ capture can be used to distinguise different isoforms, where __tag-based__ method can reduce the mappability and difficult to distinguish different isoforms.
 
 * __Tag-based__ 3’ counting techniques
-– 1 read per transcript
-– Based on polyA 
-– Expression analysis only
-– Fewer reads per cell needed (~50K reads/cell)
-– Less noise in expression patterns
+	* 1 read per transcript
+	* Based on polyA 
+	* Expression analysis only
+	* Fewer reads per cell needed (~50K reads/cell)
+	* Less noise in expression patterns
 * __Full-length__
-– Based on polyA 
-– Expression analysis
-– Splicing information 
-– The more information desired beyond expression, the higher the reads needed per cell (~50K reads/cell to 10M reads/cell)
+	* Based on polyA 
+	* Expression analysis
+	*  Splicing information 
+	*  The more information desired beyond expression, the higher the reads needed per cell (~50K reads/cell to 10M reads/cell)
 
 
 For smaller experiment < 5000 cells, the R packages [`SingleCellExperiment`](http://bioconductor.org/packages/SingleCellExperiment), [`scater`](http://bioconductor.org/packages/scater/), [`SC3`](http://bioconductor.org/packages/release/bioc/html/SC3.html) are good choices. For larget experiments (> 5000 cells), the R package [`Seurat`](http://satijalab.org/seurat/) offers a complete solution.
@@ -90,29 +88,29 @@ If using cellranger,
 ### Cell barcode and UMI filtering
 
 * Cell barcodes 
-– Must be on static list of known cell barcode sequences 
-– May be 1 mismatch away from the list if the mismatch occurs at a low- quality position (the barcode is then corrected).
+	* Must be on static list of known cell barcode sequences 
+	* May be 1 mismatch away from the list if the mismatch occurs at a low- quality position (the barcode is then corrected).
 
 * UMIs (Unique Molecular Index)
-–  Must not be a homopolymer, e.g. AAAAAAAAAA 
-–  Must not contain N 
-–  Must not contain bases with base quality < 10 
-–  UMIs that are 1 mismatch away from a higher-count UMI are corrected to that UMI if they share a cell barcode and gene. 
+	*  Must not be a homopolymer, e.g. AAAAAAAAAA 
+	*  Must not contain N 
+	*  Must not contain bases with base quality < 10 
+	*  UMIs that are 1 mismatch away from a higher-count UMI are corrected to that UMI if they share a cell barcode and gene. 
 
 ### Marking duplicates
 
 * Using only the confidently mapped reads with valid barcodes and UMIs, 
-– Correct the UMIs
-	UMIs are corrected to more abundant UMIs that are one mismatch away in sequence. 
-– Record which reads are duplicates of the same RNA molecule 
-– Count only the unique UMIs as unique RNA molecules
-– These UMI counts form an unfiltered gene-barcode matrix. 
+	*Correct the UMIs
+		UMIs are corrected to more abundant UMIs that are one mismatch away in sequence. 
+	* Record which reads are duplicates of the same RNA molecule 
+	* Count only the unique UMIs as unique RNA molecules
+	* These UMI counts form an unfiltered gene-barcode matrix. 
 
 ### Filtering cells (the 10x way)
 
 * Select barcodes that likely contain cells 
-– Sum UMI counts for each barcode 
-– Select barcodes with total UMI count >10% of the 99th percentile of the expected recovered cells. ( I honestly haven't wrapped my head around this yet. )
+	* Sum UMI counts for each barcode 
+	* Select barcodes with total UMI count >10% of the 99th percentile of the expected recovered cells. ( I honestly haven't wrapped my head around this yet. )
 * Produces a filtered gene-barcode matrix. 
 
 <div class="figure" style="text-align: center">
@@ -203,7 +201,7 @@ Summary of the alignment and assignment of reads to cells and genes are present 
 
 	1. In the folder 2017_10X_mouse_comparative, which output folders/files were generated from this script?
 	2. Copy over the Reports folder and review it
-	3. Using zless review the first set of reads from sample 654 
+	3. Using zless review the first set of reads from sample 654
  	4. If time remain, mock run the script.
 
 5. Review the [2-counts.slurm](2-counts.slurm) script used to map fastq files.
@@ -215,7 +213,7 @@ Summary of the alignment and assignment of reads to cells and genes are present 
 		3. Sequencing Saturation?
 		4. Mean Reads per Cell?
 		5. Median UMI Counts per Cell?
-	 A pretty version can be found in their html output [report](web_summary.html).
+			A pretty version can be found in their html output [report](web_summary.html).
  	3. Using samtools and rseqc evaluate the mapping file
 ```
 module load rseqc
@@ -227,9 +225,13 @@ samtools stats possorted_genome_bam.bam
  	4. head the files under raw_gene_bc_matrices and filtered_gene_bc_matrices
  	5. If time remain, mock run the script.
 
-6. Run a testrun of cellranger in your home directory
+6. Run a testrun of cellranger in your home directory _cellranger testrun_
 	1. view the output
 
 7. Copy the file and extract. Review [transfer](logging-in.md) if needed.
 
 	/share/biocore/workshops/2017_2018-single-cell-RNA-sequencing-Workshop-UCD_UCB_UCSF/expression_tables.tar.gz
+
+---
+
+[Commands](monday/commands) used in class
