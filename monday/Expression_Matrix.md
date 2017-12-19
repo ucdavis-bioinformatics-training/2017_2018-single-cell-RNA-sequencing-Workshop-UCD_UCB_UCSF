@@ -213,9 +213,9 @@ Summary of the alignment and assignment of reads to cells and genes are present 
 		3. Sequencing Saturation?
 		4. Mean Reads per Cell?
 		5. Median UMI Counts per Cell?
- 	3. head the files under raw_gene_bc_matrices and filtered_gene_bc_matrices
- 	4. If time remain, mock run the script.
- 	5. Using samtools and rseqc evaluate the mapping file
+	3. head the files under raw_gene_bc_matrices and filtered_gene_bc_matrices
+	4. If time remain, mock run the script.
+	5. Using samtools and rseqc evaluate the mapping file.
 ```
 module load rseqc
 module load samtools
