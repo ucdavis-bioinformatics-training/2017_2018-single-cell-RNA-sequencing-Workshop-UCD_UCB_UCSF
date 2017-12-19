@@ -23,6 +23,7 @@ Tuesday
 * Lunch - Sponsored by Illumina
 * Illumina Technology talk
 * [Seurat Analysis](tuesday/scRNA_Workshop.md)
+	* [The R markdown file](tuesday/scRNA_Workshop.Rmd)
 
 Wednesday
 ----------
