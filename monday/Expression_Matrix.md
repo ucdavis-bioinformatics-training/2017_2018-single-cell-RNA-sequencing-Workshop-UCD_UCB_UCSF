@@ -224,8 +224,11 @@ samtools flagstat possorted_genome_bam.bam
 samtools stats possorted_genome_bam.bam
 ```
 
-6. Run a testrun of cellranger in your home directory _cellranger testrun_
-	1. view the output
+6. Run a testrun of cellranger in your home directory
+```
+cellranger testrun
+```
+	* view the output
 
 7. Copy the file and extract. Review [transfer](logging-in.md) if needed.
 
