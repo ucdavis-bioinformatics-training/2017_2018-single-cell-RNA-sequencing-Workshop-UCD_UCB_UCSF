@@ -34,8 +34,8 @@ Wednesday
 * Lunch - Sponsored by 10X genomics
 * 10X genomics Technology talk
 * Bioinformatics using 10X genomics software 
-
+* [Closing Thoughts](wednesday/Closing_Thoughts.pdf)
 
 Evaluation!
 ----------
-Please help us improve future workshops, for you and others, by filling out an [evaluation]().
+Please help us improve future workshops, for you and others, by filling out an [evaluation](https://goo.gl/forms/NSX09xvZWfpjd3u22).

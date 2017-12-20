@@ -15,6 +15,7 @@ Dowload and expand the expression_tables.tar.gz file to extract the single cell 
 
 We start with loading needed libraries for R, at this time all we need is the package [Seurat](http://satijalab.org/seurat/).
 ```{r, warning=FALSE,echo=FALSE}
+# This is loading the package Seurat
 library(Seurat)
 ```
 
@@ -94,6 +95,7 @@ head(experiment.aggregate@meta.data)
 
 ```{r}
 table(experiment.aggregate@meta.data$orig.ident)
+head(experiment.aggregate@raw.data)
 ```
 
 ## Some basic QA/QC of the metadata, print tables of the 5% quantiles.
@@ -306,7 +308,7 @@ experiment.aggregate <- JackStraw(
 ```
 
 ```{r}
-JackStrawPlot(object = experiment.aggregate, PCs = 1:40)
+JackStrawPlot(object = experiment.aggregate, PCs = 15:20)
 ```
 
 Looking at the results of the JackStraw plot, we determine to use the first 35 PCs
@@ -391,6 +393,7 @@ experiment.aggregate <- BuildClusterTree(
   experiment.aggregate,
   do.reorder = F,
   reorder.numeric = F,
+#  SNN.use = experiment.aggregate@snn,
   do.plot=F)
 
 PlotClusterTree(experiment.aggregate)
@@ -429,6 +432,13 @@ markers = FindMarkers(experiment.aggregate, ident.1=c(0,14))
 head(markers)
 ```
 
+ 
+pct.1 and pct.2 are the proportion of cells with expression above 0 in ident.1 and ident.2 respectively. p_val is the raw p_value associated with the differntial expression test with adjusted value in p_val_adj. avg_logFC is the average log fold change difference between the two groups. 
+ 
+avg_diff (lines 130, 193 and) appears to be the difference in log(x = mean(x = exp(x = x) - 1) + 1) between groups.  It doesn’t seem like this should work out to be the signed ratio of pct.1 to pct.2 so I must be missing something.  It doesn’t seem to be related at all to how the p-values are calculated so maybe it doesn’t matter so much, and the sign is probably going to be pretty robust to how expression is measured.
+
+
+
 Can use a violin plot to visualize the expression pattern of some markers
 ```{r}
 VlnPlot(object = experiment.aggregate, features.plot = rownames(markers)[1:2])
@@ -466,6 +476,26 @@ DoHeatmap(
 )
 ```
 
+```{r}
+
+# Get expression of 
+getGeneClusterMeans <- function(gene, cluster){
+  x <- experiment.aggregate@data[gene,]
+  m <- tapply(x, ifelse(experiment.aggregate@ident == cluster, 1, 0), mean)
+  mean.in.cluster <- m[2]
+  mean.out.of.cluster <- m[1]
+  return(list(mean.in.cluster = mean.in.cluster, mean.out.of.cluster = mean.out.of.cluster))
+}
+
+## for sake of time only using first six (head)
+means <- mapply(getGeneClusterMeans, head(markers_all[,"gene"]), head(markers_all[,"cluster"]))
+means <- matrix(unlist(means), ncol = 2, byrow = T)
+
+colnames(means2) <- c("mean.in.cluster", "mean.out.of.cluster")
+markers_all2 <- cbind(head(markers_all), means)
+markers_all2_pos <- subset(markers_all2, avg_logFC > 0)
+```
+
 ## Finishing up clusters.
 
 At this point in time you should use the tree, markers, domain knowledge, and goals to finalize your clusters. This may mean adjusting PCA to use, mergers clusters together, choosing a new resolutions, etc. When finished you can further name it cluster by something more informative. Ex.
@@ -480,9 +510,53 @@ experiment.clusters <- RenameIdent(
 TSNEPlot(object = experiment.clusters, pt.size=0.5, do.label = T)
 ```
 
-And last lets save our clustered object.
+## Subsetting samples
 ```{r}
-save(experiment.clusters,file="clusters_seurat_object.RData")
+experiment.sample2 <- SubsetData(
+  object = experiment.aggregate,
+  cells.use = rownames(experiment.aggregate@meta.data)[experiment.aggregate@meta.data$orig.ident %in% c("sample2")])
+
+TSNEPlot(object = experiment.sample2, group.by="res.0.5", pt.size=0.5, do.label = TRUE)
+
+FeaturePlot(experiment.sample2, features.plot=c('Calca'), pt.size=0.5)
+FeaturePlot(experiment.sample2, features.plot=c('Adcyap1'), pt.size=0.5)
+```
+### Adding in a new metadata column representing samples within clusters
+```{r}
+experiment.aggregate <- AddMetaData(
+  object = experiment.aggregate,
+  metadata = experiment.aggregate@ident,
+  col.name = "finalcluster")
+
+samplecluster = paste(experiment.aggregate@meta.data$orig.ident,experiment.aggregate@meta.data$finalcluster,sep = '-')
+names(samplecluster) = rownames(experiment.aggregate@meta.data)
+head(samplecluster)
+
+experiment.aggregate <- AddMetaData(
+  object = experiment.aggregate,
+  metadata = samplecluster,
+  col.name = "samplecluster")
+
+# set the identity to the new variable 
+experiment.aggregate <- SetAllIdent(experiment.aggregate, id = "samplecluster")
+
+markers.comp <- FindMarkers(experiment.aggregate, ident.1 = "sample1-0", ident.2= "sample2-0")
+
+markers.comp <- FindMarkers(experiment.aggregate, ident.1 = "sample1-0", ident.2= "sample2-0")
+
+DoHeatmap(experiment.aggregate,
+          use.scaled = TRUE,
+          cells.use=rownames(experiment.aggregate@meta.data)[experiment.aggregate@meta.data$samplecluster %in% c( "sample1-0", "sample2-0" )],
+          genes.use = rownames(markers.comp),
+          slim.col.label = TRUE
+          )
+
+experiment.aggregate <- SetAllIdent(experiment.aggregate, id = "finalcluster")
+```
+
+And last lets save all the objects in our session.
+```{r}
+save(list=ls(), file="clusters_seurat_object.RData")
 ```
 
 Session Information
