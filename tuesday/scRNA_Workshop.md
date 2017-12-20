@@ -472,7 +472,7 @@ PrintPCAParams(experiment.aggregate)
 ```
 
 ```
-## Parameters used in latest PCA calculation run on: 2017-12-19 17:46:09
+## Parameters used in latest PCA calculation run on: 2017-12-19 18:59:36
 ## =============================================================================
 ## PCs computed    Genes used in calculation    PCs Scaled by Variance Explained
 ##     40                  1123                               TRUE
@@ -600,7 +600,7 @@ PrintFindClustersParams(object = experiment.aggregate)
 ```
 
 ```
-## Parameters used in latest FindClusters calculation run on: 2017-12-19 18:25:05
+## Parameters used in latest FindClusters calculation run on: 2017-12-19 19:33:49
 ## =============================================================================
 ## Resolution: 0.5
 ## -----------------------------------------------------------------------------
@@ -753,43 +753,68 @@ PlotClusterTree(experiment.aggregate)
 
 ![](scRNA_Workshop_files/figure-html/unnamed-chunk-39-1.png)<!-- -->
 
+Plot the split at node 30
+
 ```r
 ColorTSNESplit(experiment.aggregate, node = 30)
 ```
 
-![](scRNA_Workshop_files/figure-html/unnamed-chunk-39-2.png)<!-- -->
+![](scRNA_Workshop_files/figure-html/unnamed-chunk-40-1.png)<!-- -->
+
+
+```r
+TSNEPlot(object = experiment.aggregate, pt.size=0.5, do.label = TRUE)
+```
+
+![](scRNA_Workshop_files/figure-html/unnamed-chunk-41-1.png)<!-- -->
+
 
 ```r
 # Merged clusters, not working correctly
-#pbmc_small <- RenameIdent(
-#  object = pbmc_small,
-#  old.ident.name = 0,
-#  new.ident.name = 'cluster_0'
-#)
-experiment.merged <- MergeNode(experiment.aggregate, node=30, rebuild.tree = F)
+#experiment.merged <- MergeNode(experiment.aggregate, node=30, rebuild.tree = F)
+experiment.merged <- RenameIdent(
+  object = experiment.aggregate,
+  old.ident.name = c('14'),
+  new.ident.name = '0'
+)
 TSNEPlot(object = experiment.merged, pt.size=0.5, do.label = T)
 ```
 
-![](scRNA_Workshop_files/figure-html/unnamed-chunk-39-3.png)<!-- -->
+![](scRNA_Workshop_files/figure-html/unnamed-chunk-42-1.png)<!-- -->
+## Identifying Marker Genes
+
+Seurat can help you find markers that define clusters via differential expression.
+`FindMarkers` identifies markers for a cluster relative to all other clusters.
+
+`FindAllMarkers` does so for all clusters
+
+`FindAllMarkersNode` defines all markers that split a Node __(Warning: need to validate)__
 
 
 ```r
-markers = FindMarkers(experiment.aggregate, ident.1=7)
-# FindAllMarkers
-# FindAllMarkersNode
+markers = FindMarkers(experiment.aggregate, ident.1=c(0,14))
+head(markers)
+```
 
+```
+##       p_val avg_logFC pct.1 pct.2 p_val_adj
+## Ctxn3     0  1.667422 0.924 0.144         0
+## Txn1      0  1.560734 0.978 0.663         0
+## Ly86      0  1.490297 0.633 0.092         0
+## Lpar3     0  1.452380 0.760 0.016         0
+## Gm765     0  1.446631 0.819 0.059         0
+## Cd55      0  1.337367 0.932 0.261         0
+```
+
+Can use a violin plot to visualize the expression pattern of some markers
+
+```r
 VlnPlot(object = experiment.aggregate, features.plot = rownames(markers)[1:2])
 ```
 
-![](scRNA_Workshop_files/figure-html/unnamed-chunk-40-1.png)<!-- -->
+![](scRNA_Workshop_files/figure-html/unnamed-chunk-44-1.png)<!-- -->
 
-```r
-head(rownames(markers)) 
-```
-
-```
-## [1] "Crip1"    "Mrgpra3"  "Ifi27l2a" "Kcnmb1"   "Gm567"    "Calca"
-```
+Or a feature plot
 
 ```r
 FeaturePlot(
@@ -800,40 +825,91 @@ FeaturePlot(
 )
 ```
 
-![](scRNA_Workshop_files/figure-html/unnamed-chunk-40-2.png)<!-- -->
+![](scRNA_Workshop_files/figure-html/unnamed-chunk-45-1.png)<!-- -->
 
+FindAllMarkers can be used to automate the process across all genes.
 
 ```r
-#markers_all <- FindAllMarkers(
-#    object = experiment.aggregate, 
-#    only.pos = TRUE, 
-#    min.pct = 0.25, 
-#    thresh.use = 0.25
-#)
+markers_all <- FindAllMarkers(
+    object = experiment.aggregate, 
+    only.pos = TRUE, 
+    min.pct = 0.25, 
+    thresh.use = 0.25
+)
 ```
 
+Plot a heatmap of genes by cluster for the top 5 marker genes per cluster
 
 ```r
-#library(dplyr)
-#top10 <- markers_all %>% group_by(cluster) %>% top_n(10, avg_logFC)
-#DoHeatmap(
-#    object = experiment.aggregate, 
-#    genes.use = top10$gene, 
-#    slim.col.label = TRUE, 
-#    remove.key = TRUE
-#)
+library(dplyr)
 ```
-## SAMPLE SUBSETTING, example
+
+```
+## Warning: package 'dplyr' was built under R version 3.4.2
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+```
+
+```
+## The following object is masked from 'package:Biobase':
+## 
+##     combine
+```
+
+```
+## The following objects are masked from 'package:BiocGenerics':
+## 
+##     combine, intersect, setdiff, union
+```
+
+```
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
 
 ```r
-#experiment.sample2 <- SubsetData(
-#  object = experiment.aggregate,
-#  subset.name="orig.ident",
-#  ident.use =c("sample2"))
-#TSNEPlot(object = experiment.sample2, group.by="res.0.5", pt.size=0.5, do.label = TRUE)
+top5 <- markers_all %>% group_by(cluster) %>% top_n(5, avg_logFC)
+DoHeatmap(
+    object = experiment.aggregate, 
+    genes.use = top5$gene, 
+    slim.col.label = TRUE, 
+    remove.key = TRUE
+)
+```
 
-#FeaturePlot(experiment.sample2, features.plot=c('Calca'), pt.size=0.5)
-#FeaturePlot(experiment.sample2, features.plot=c('Adcyap1'), pt.size=0.5)
+![](scRNA_Workshop_files/figure-html/unnamed-chunk-47-1.png)<!-- -->
+
+## Finishing up clusters.
+
+At this point in time you should use the tree, markers, domain knowledge, and goals to finalize your clusters. This may mean adjusting PCA to use, mergers clusters together, choosing a new resolutions, etc. When finished you can further name it cluster by something more informative. Ex.
+
+```r
+experiment.clusters <- experiment.aggregate
+experiment.clusters <- RenameIdent(
+  object = experiment.clusters,
+  old.ident.name = c('0'),
+  new.ident.name = 'cell_type_A'
+)
+
+TSNEPlot(object = experiment.clusters, pt.size=0.5, do.label = T)
+```
+
+![](scRNA_Workshop_files/figure-html/unnamed-chunk-48-1.png)<!-- -->
+
+And last lets save our clustered object.
+
+```r
+save(experiment.clusters,file="clusters_seurat_object.RData")
 ```
 
 Session Information
@@ -859,9 +935,9 @@ sessionInfo()
 ## [8] base     
 ## 
 ## other attached packages:
-## [1] bindrcpp_0.2        Seurat_2.1.0        Biobase_2.36.2     
-## [4] BiocGenerics_0.22.1 Matrix_1.2-12       cowplot_0.9.2      
-## [7] ggplot2_2.2.1      
+## [1] dplyr_0.7.4         bindrcpp_0.2        Seurat_2.1.0       
+## [4] Biobase_2.36.2      BiocGenerics_0.22.1 Matrix_1.2-12      
+## [7] cowplot_0.9.2       ggplot2_2.2.1      
 ## 
 ## loaded via a namespace (and not attached):
 ##   [1] diffusionMap_1.1-0   Rtsne_0.13           VGAM_1.0-4          
@@ -880,32 +956,31 @@ sessionInfo()
 ##  [40] backports_1.1.2      assertthat_0.2.0     lazyeval_0.2.1      
 ##  [43] lars_1.2             acepack_1.4.1        htmltools_0.3.6     
 ##  [46] tools_3.4.1          igraph_1.1.2         gtable_0.2.0        
-##  [49] glue_1.2.0           reshape2_1.4.3       dplyr_0.7.4         
-##  [52] Rcpp_0.12.14         NMF_0.20.6           trimcluster_0.1-2   
-##  [55] gdata_2.18.0         ape_5.0              nlme_3.1-131        
-##  [58] iterators_1.0.9      fpc_2.1-10           psych_1.7.8         
-##  [61] timeDate_3042.101    gower_0.1.2          stringr_1.2.0       
-##  [64] irlba_2.3.1          rngtools_1.2.4       gtools_3.5.0        
-##  [67] DEoptimR_1.0-8       MASS_7.3-47          scales_0.5.0        
-##  [70] ipred_0.9-6          RColorBrewer_1.1-2   yaml_2.1.16         
-##  [73] pbapply_1.3-3        gridExtra_2.3        pkgmaker_0.22       
-##  [76] segmented_0.5-3.0    rpart_4.1-11         latticeExtra_0.6-28 
-##  [79] stringi_1.1.6        foreach_1.4.4        checkmate_1.8.5     
-##  [82] caTools_1.17.1       ggjoy_0.4.0          lava_1.5.1          
-##  [85] dtw_1.18-1           SDMTools_1.1-221     rlang_0.1.4         
-##  [88] pkgconfig_2.0.1      prabclus_2.2-6       bitops_1.0-6        
-##  [91] evaluate_0.10.1      lattice_0.20-35      ROCR_1.0-7          
-##  [94] purrr_0.2.4          bindr_0.1            labeling_0.3        
-##  [97] recipes_0.1.1        htmlwidgets_0.9      tidyselect_0.2.3    
-## [100] CVST_0.2-1           plyr_1.8.4           magrittr_1.5        
-## [103] R6_2.2.2             gplots_3.0.1         Hmisc_4.0-3         
-## [106] dimRed_0.1.0         sn_1.5-1             withr_2.1.0         
-## [109] foreign_0.8-69       mixtools_1.1.0       survival_2.41-3     
-## [112] scatterplot3d_0.3-40 nnet_7.3-12          tsne_0.1-3          
-## [115] tibble_1.3.4         KernSmooth_2.23-15   rmarkdown_1.8       
-## [118] grid_3.4.1           data.table_1.10.4-3  FNN_1.1             
-## [121] ModelMetrics_1.1.0   digest_0.6.13        diptest_0.75-7      
-## [124] xtable_1.8-2         numDeriv_2016.8-1    tidyr_0.7.2         
-## [127] R.utils_2.6.0        stats4_3.4.1         munsell_0.4.3       
-## [130] registry_0.5
+##  [49] glue_1.2.0           reshape2_1.4.3       Rcpp_0.12.14        
+##  [52] NMF_0.20.6           trimcluster_0.1-2    gdata_2.18.0        
+##  [55] ape_5.0              nlme_3.1-131         iterators_1.0.9     
+##  [58] fpc_2.1-10           psych_1.7.8          timeDate_3042.101   
+##  [61] gower_0.1.2          stringr_1.2.0        irlba_2.3.1         
+##  [64] rngtools_1.2.4       gtools_3.5.0         DEoptimR_1.0-8      
+##  [67] MASS_7.3-47          scales_0.5.0         ipred_0.9-6         
+##  [70] RColorBrewer_1.1-2   yaml_2.1.16          pbapply_1.3-3       
+##  [73] gridExtra_2.3        pkgmaker_0.22        segmented_0.5-3.0   
+##  [76] rpart_4.1-11         latticeExtra_0.6-28  stringi_1.1.6       
+##  [79] foreach_1.4.4        checkmate_1.8.5      caTools_1.17.1      
+##  [82] ggjoy_0.4.0          lava_1.5.1           dtw_1.18-1          
+##  [85] SDMTools_1.1-221     rlang_0.1.4          pkgconfig_2.0.1     
+##  [88] prabclus_2.2-6       bitops_1.0-6         evaluate_0.10.1     
+##  [91] lattice_0.20-35      ROCR_1.0-7           purrr_0.2.4         
+##  [94] bindr_0.1            labeling_0.3         recipes_0.1.1       
+##  [97] htmlwidgets_0.9      tidyselect_0.2.3     CVST_0.2-1          
+## [100] plyr_1.8.4           magrittr_1.5         R6_2.2.2            
+## [103] gplots_3.0.1         Hmisc_4.0-3          dimRed_0.1.0        
+## [106] sn_1.5-1             withr_2.1.0          foreign_0.8-69      
+## [109] mixtools_1.1.0       survival_2.41-3      scatterplot3d_0.3-40
+## [112] nnet_7.3-12          tsne_0.1-3           tibble_1.3.4        
+## [115] KernSmooth_2.23-15   rmarkdown_1.8        grid_3.4.1          
+## [118] data.table_1.10.4-3  FNN_1.1              ModelMetrics_1.1.0  
+## [121] digest_0.6.13        diptest_0.75-7       xtable_1.8-2        
+## [124] numDeriv_2016.8-1    tidyr_0.7.2          R.utils_2.6.0       
+## [127] stats4_3.4.1         munsell_0.4.3        registry_0.5
 ```

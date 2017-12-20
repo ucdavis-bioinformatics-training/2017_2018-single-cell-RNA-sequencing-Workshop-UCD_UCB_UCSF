@@ -28,6 +28,9 @@ Tuesday
 Wednesday
 ----------
 
+* [Continued Seurat Analysis](tuesday/scRNA_Workshop.md)
+	* [The R markdown file](tuesday/scRNA_Workshop.Rmd)
+* [Experimental Design](wednesday/singlecellRNAseq-expDesign.pdf)
 * Lunch - Sponsored by 10X genomics
 * 10X genomics Technology talk
 * Bioinformatics using 10X genomics software 
