@@ -95,7 +95,6 @@ head(experiment.aggregate@meta.data)
 
 ```{r}
 table(experiment.aggregate@meta.data$orig.ident)
-head(experiment.aggregate@raw.data)
 ```
 
 ## Some basic QA/QC of the metadata, print tables of the 5% quantiles.
@@ -226,8 +225,16 @@ ScaleData - Scales and centers genes in the dataset. If variables are provided i
 ```{r}
 experiment.aggregate <- ScaleData(
   object = experiment.aggregate,
-  genes.use=experiment.aggregate@var.genes,
+  do.scale = FALSE,
+  do.center = FALSE,
   vars.to.regress = c("orig.ident", "nUMI","percent.mito"))
+
+norm.data <- experiment.aggregate@data
+experiment.aggregate@data <- experiment.aggregate@scale.data
+
+experiment.aggregate <- ScaleData(
+  object = experiment.aggregate,
+  genes.use=experiment.aggregate@var.genes)
 ```
 
 ## Dimensionality reduction with PCA 
@@ -308,7 +315,7 @@ experiment.aggregate <- JackStraw(
 ```
 
 ```{r}
-JackStrawPlot(object = experiment.aggregate, PCs = 15:20)
+JackStrawPlot(object = experiment.aggregate, PCs = 1:40, nCol = 5)
 ```
 
 Looking at the results of the JackStraw plot, we determine to use the first 35 PCs
@@ -428,8 +435,12 @@ Seurat can help you find markers that define clusters via differential expressio
 `FindAllMarkersNode` defines all markers that split a Node __(Warning: need to validate)__
 
 ```{r}
-markers = FindMarkers(experiment.aggregate, ident.1=c(0,14))
+markers = FindMarkers(experiment.aggregate, ident.1=c(0,14), genes.use=rownames(experiment.aggregate@scale.data))
+
 head(markers)
+dim(markers)
+table(markers$avg_logFC > 0)
+
 ```
 
  
@@ -452,6 +463,13 @@ FeaturePlot(
     cols.use = c("lightgrey", "blue"), 
     nCol = 3
 )
+
+FeaturePlot(
+    experiment.aggregate, 
+    "Lpar3", 
+    cols.use = c("lightgrey", "blue"), 
+)
+
 ```
 
 FindAllMarkers can be used to automate the process across all genes.
@@ -462,12 +480,26 @@ markers_all <- FindAllMarkers(
     min.pct = 0.25, 
     thresh.use = 0.25
 )
+dim(markers_all)
+table(table(markers_all$gene))
+
+markers_all_single <- markers_all[markers_all$gene %in% names(table(markers_all$gene))[table(markers_all$gene) == 1],]
+
+dim(markers_all_single)
+table(table(markers_all_single$gene))
+
+table(markers_all_single$cluster)
+
+head(markers_all_single)
+
 ```
 
 Plot a heatmap of genes by cluster for the top 5 marker genes per cluster
 ```{r}
+#install.packages("dplyr")
 library(dplyr)
-top5 <- markers_all %>% group_by(cluster) %>% top_n(5, avg_logFC)
+top5 <- markers_all_single %>% group_by(cluster) %>% top_n(5, avg_logFC)
+dim(top5)
 DoHeatmap(
     object = experiment.aggregate, 
     genes.use = top5$gene, 
@@ -491,9 +523,9 @@ getGeneClusterMeans <- function(gene, cluster){
 means <- mapply(getGeneClusterMeans, head(markers_all[,"gene"]), head(markers_all[,"cluster"]))
 means <- matrix(unlist(means), ncol = 2, byrow = T)
 
-colnames(means2) <- c("mean.in.cluster", "mean.out.of.cluster")
+colnames(means) <- c("mean.in.cluster", "mean.out.of.cluster")
 markers_all2 <- cbind(head(markers_all), means)
-markers_all2_pos <- subset(markers_all2, avg_logFC > 0)
+
 ```
 
 ## Finishing up clusters.
@@ -508,6 +540,12 @@ experiment.clusters <- RenameIdent(
 )
 
 TSNEPlot(object = experiment.clusters, pt.size=0.5, do.label = T)
+
+experiment.aggregate <- AddMetaData(
+  object = experiment.aggregate,
+  metadata = experiment.aggregate@ident,
+  col.name = "finalcluster")
+
 ```
 
 ## Subsetting samples
@@ -523,12 +561,8 @@ FeaturePlot(experiment.sample2, features.plot=c('Adcyap1'), pt.size=0.5)
 ```
 ### Adding in a new metadata column representing samples within clusters
 ```{r}
-experiment.aggregate <- AddMetaData(
-  object = experiment.aggregate,
-  metadata = experiment.aggregate@ident,
-  col.name = "finalcluster")
-
 samplecluster = paste(experiment.aggregate@meta.data$orig.ident,experiment.aggregate@meta.data$finalcluster,sep = '-')
+
 names(samplecluster) = rownames(experiment.aggregate@meta.data)
 head(samplecluster)
 
@@ -542,7 +576,7 @@ experiment.aggregate <- SetAllIdent(experiment.aggregate, id = "samplecluster")
 
 markers.comp <- FindMarkers(experiment.aggregate, ident.1 = "sample1-0", ident.2= "sample2-0")
 
-markers.comp <- FindMarkers(experiment.aggregate, ident.1 = "sample1-0", ident.2= "sample2-0")
+markers.comp <- FindMarkers(experiment.aggregate, ident.1 = "sample1-0", ident.2= "sample3-0")
 
 DoHeatmap(experiment.aggregate,
           use.scaled = TRUE,
@@ -552,6 +586,7 @@ DoHeatmap(experiment.aggregate,
           )
 
 experiment.aggregate <- SetAllIdent(experiment.aggregate, id = "finalcluster")
+
 ```
 
 And last lets save all the objects in our session.
