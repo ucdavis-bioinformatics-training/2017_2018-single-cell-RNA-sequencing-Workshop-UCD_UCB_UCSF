@@ -10,7 +10,7 @@ najoshi@ucdavis.edu
 1. Open a Terminal (usually under Applications/Utilities on a Mac)
 2. Cut and paste this into the terminal:
 
-        ssh [username]#@ganesh.genomecenter.ucdavis.edu
+        ssh [username]@ganesh.genomecenter.ucdavis.edu
 
    where [username] is replaced with your course username, ex. class12. Press Enter.
 
