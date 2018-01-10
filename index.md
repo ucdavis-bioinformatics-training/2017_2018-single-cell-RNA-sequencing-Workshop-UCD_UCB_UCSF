@@ -4,37 +4,36 @@
 
 [github link](https://github.com/ucdavis-bioinformatics-training/2017_2018-single-cell-RNA-sequencing-Workshop-UCD_UCB_UCSF)
 
-Monday
+Day 1
 ----------
-* [Introduction](monday/Introduction.pdf)
-* [Bioinformatics](monday/What_is_Bioinformatics.pdf)
-* [Logging In and transferring files](monday/logging-in)
-* [Intro to command-line](monday/command-line-intro)
-* [Single Cell Technologies](monday/UCD single cell technology informatics talk.pdf) (Eric Chow, UCSF talk)
+* [Introduction](day1/Introduction.pdf)
+* [Bioinformatics](day1/What_is_Bioinformatics.pdf)
+* [Logging In and transferring files](day1/logging-in)
+* [Intro to command-line](day1/command-line-intro)
+* [Single Cell Technologies](day1/UCD single cell technology informatics talk.pdf) (Eric Chow, UCSF talk)
 * Lunch - Sponsored by Takara
 * Takara Technology talk
-* [Working on a cluster](monday/cluster.md)
-* [Generating an expression matrix from 10x sc data](monday/Expression_Matrix.md)
+* [Working on a cluster](day1/cluster.md)
+* [Generating an expression matrix from 10x sc data](day1/Expression_Matrix.md)
 
-Tuesday
+Day 2
 ----------
-* [Intro to R](tuesday/Intro2R.md)
-* [Dataset Introduction]() (Carrie Finno, UCD talk)
+* [Intro to R](day2/Intro2R.md)
+* [Dataset Introduction]()
 * Lunch - Sponsored by Illumina
 * Illumina Technology talk
-* [Seurat Analysis](tuesday/scRNA_Workshop.md)
-	* [The R markdown file](tuesday/scRNA_Workshop.Rmd)
+* [Seurat Analysis](day2/scRNA_Workshop.md)
+	* [The R markdown file](day2/scRNA_Workshop.Rmd)
 
-Wednesday
+Day 3
 ----------
 
-* [Continued Seurat Analysis](tuesday/scRNA_Workshop.md)
-	* [The R markdown file](tuesday/scRNA_Workshop.Rmd)
-* [Experimental Design](wednesday/singlecellRNAseq-expDesign.pdf)
+* [Continued Seurat Analysis](day2/scRNA_Workshop.md)
+	* [The R markdown file](day2/scRNA_Workshop.Rmd)
+* [Experimental Design](day3/singlecellRNAseq-expDesign.pdf)
 * Lunch - Sponsored by 10X genomics
 * 10X genomics Technology talk
-* Bioinformatics using 10X genomics software 
-* [Closing Thoughts](wednesday/Closing_Thoughts.pdf)
+* [Closing Thoughts](day3/Closing_Thoughts.pdf)
 
 Evaluation!
 ----------
