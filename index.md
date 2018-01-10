@@ -14,7 +14,7 @@ Day 1
 * Lunch - Sponsored by Takara
 * Takara Technology talk
 * [Working on a cluster](day1/cluster.md)
-* [Generating an expression matrix from 10x sc data](day1/Expression_Matrix.md)
+* [Generating an expression matrix from 10x sc data](day1/Expression_Matrix)
 
 Day 2
 ----------

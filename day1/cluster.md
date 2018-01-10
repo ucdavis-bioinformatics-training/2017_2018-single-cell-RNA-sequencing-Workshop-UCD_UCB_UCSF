@@ -33,7 +33,7 @@ This command is requesting a compute node with a time limit of 1440 minutes (i.e
 
 Generally, we do not use any options for sbatch... we typically give it a script (i.e. a text file with commands inside) to run. Let's take a look at a template script:
 
-    wget https://ucdavis-bioinformatics-training.github.io/2017_2018-single-cell-RNA-sequencing-Workship-UCD_UCB_UCSF/monday/example.slurm
+    wget https://ucdavis-bioinformatics-training.github.io/2017_2018-single-cell-RNA-sequencing-Workship-UCD_UCB_UCSF/day1/example.slurm
 
     cat example.slurm
 
