@@ -7,10 +7,10 @@
 Day 1
 ----------
 * [Introduction](day1/Introduction.pdf)
-* [Bioinformatics](day1/What_is_Bioinformatics.pdf)
-* [Logging In and transferring files](day1/logging-in)
+* [Single Cell Technologies](day1/UCD single cell technology informatics talk.pdf) (* [Logging In and transferring files](day1/logging-in)
 * [Intro to command-line](day1/command-line-intro)
-* [Single Cell Technologies](day1/UCD single cell technology informatics talk.pdf) (Eric Chow, UCSF talk)
+* [Bioinformatics](day1/What_is_Bioinformatics.pdf)
+Eric Chow, UCSF talk)
 * Lunch - Sponsored by Takara
 * Takara Technology talk
 * [Working on a cluster](day1/cluster.md)
