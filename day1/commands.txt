@@ -1,0 +1,43 @@
+cd ~
+ln -s /share/biocore/workshops/2017_2018-single-cell-RNA-sequencing-Workshop-UCD_UCB_UCSF/ .
+cd 2017_2018-single-cell-RNA-sequencing-Workshop-UCD_UCB_UCSF
+cd 2017_10X_mouse_comparative/
+
+module load cellranger
+cellranger
+cellranger mkfastq --help
+cellranger count --help
+
+ls -lah
+less mkfastq.out
+less mkfastq.err
+
+cd cellranger-fastqs/
+ls
+cd HG27NBBXX
+cd 654/
+
+zless 654_S1_L008_I1_001.fastq.gz | head
+zless 654_S1_L008_R1_001.fastq.gz | head
+zless 654_S1_L008_R2_001.fastq.gz | head
+
+cd ../../..
+cat samples.txt
+
+ls slurm_output/
+cat slurm_output/countArrayJob_6478353_1.err
+cat slurm_output/countArrayJob_6478353_1.out
+
+cd 654/
+cd outs/
+ls -lah
+
+ls -lah raw_gene_bc_matrices/mm10/
+ls -lah filtered_gene_bc_matrices/mm10/
+
+head raw_gene_bc_matrices/mm10/barcodes.tsv
+head raw_gene_bc_matrices/mm10/genes.tsv
+head raw_gene_bc_matrices/mm10/matrix.mtx
+tail  raw_gene_bc_matrices/mm10/matrix.mtx
+head filtered_gene_bc_matrices/mm10/matrix.mtx
+tail  filtered_gene_bc_matrices/mm10/matrix.mtx
