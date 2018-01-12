@@ -37,4 +37,4 @@ Day 3
 
 Evaluation!
 ----------
-Please help us improve future workshops, for you and others, by filling out an [evaluation](https://goo.gl/forms/NSX09xvZWfpjd3u22).
+Please help us improve future workshops, for you and others, by filling out an [evaluation](https://docs.google.com/forms/d/e/1FAIpQLSfX8oBmAQ9HBirgHx8ut0et0GjQbyvLSqX2HAxyeBhtiZ-GhQ/viewform?usp=pp_url&entry.867399299&entry.2099364970&entry.742511503&entry.1992639322&entry.1505097319&entry.77374992&entry.1724638403&entry.22403658&entry.727535113&entry.1988454926).
