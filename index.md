@@ -20,8 +20,8 @@ Day 2
 ----------
 * [Intro to R](day2/Intro2R.md)
 * [Dataset Introduction]()
-* Lunch - Sponsored by Illumina
-* Illumina Technology talk
+* Lunch - Sponsored by 10X genomics
+* 10X genomics Technology talk
 * [Seurat Analysis](day2/scRNA_Workshop.md)
 	* [The R markdown file](day2/scRNA_Workshop.Rmd)
 
@@ -31,10 +31,12 @@ Day 3
 * [Continued Seurat Analysis](day2/scRNA_Workshop.md)
 	* [The R markdown file](day2/scRNA_Workshop.Rmd)
 * [Experimental Design](day3/singlecellRNAseq-expDesign.pdf)
-* Lunch - Sponsored by 10X genomics
-* 10X genomics Technology talk
+* Lunch - Sponsored by Illumina
+* Illumina Technology talk
+* [Continued Seurat Analysis](day2/scRNA_Workshop.md)
+	* [The R markdown file](day2/scRNA_Workshop.Rmd)
 * [Closing Thoughts](day3/Closing_Thoughts.pdf)
 
 Evaluation!
 ----------
-Please help us improve future workshops, for you and others, by filling out an [evaluation](https://docs.google.com/forms/d/e/1FAIpQLSfX8oBmAQ9HBirgHx8ut0et0GjQbyvLSqX2HAxyeBhtiZ-GhQ/viewform?usp=pp_url&entry.867399299&entry.2099364970&entry.742511503&entry.1992639322&entry.1505097319&entry.77374992&entry.1724638403&entry.22403658&entry.727535113&entry.1988454926).
+Please help us improve future workshops, for you and others, by filling out an [evaluation]().
