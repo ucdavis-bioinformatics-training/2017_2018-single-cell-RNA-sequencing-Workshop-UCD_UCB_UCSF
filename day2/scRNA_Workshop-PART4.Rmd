@@ -1,0 +1,127 @@
+---
+title: "single cell 10x single-cell analysis - part3"
+author: "UC Davis Bioinformatics Core"
+output:
+  html_document:
+    keep_md: true
+---
+
+## Load the Seurat object
+```{r}
+load(file="pre_sample_corrected.RData")
+experiment.aggregate
+```
+
+
+## Now doing so for 'real'
+
+ScaleData - Scales and centers genes in the dataset. If variables are provided in vars.to.regress, they are individually regressed against each gene, and the resulting residuals are then scaled and centered. Here we use only the highly variable genes identified above and then regress out for sample (orig.ident) and percentage mitochondria (percent.mito).
+
+```{r}
+?ScaleData
+experiment.aggregate <- ScaleData(
+  object = experiment.aggregate,
+  do.scale = FALSE,
+  do.center = FALSE,
+  vars.to.regress = c("orig.ident", "percent.mito"))
+
+norm.data <- experiment.aggregate@data
+experiment.aggregate@data <- experiment.aggregate@scale.data
+
+experiment.aggregate <- ScaleData(
+  object = experiment.aggregate,
+  genes.use=experiment.aggregate@var.genes)
+```
+
+## Dimensionality reduction with PCA 
+
+Next we perform PCA on the scaled data. By default, the genes in object@var.genes are used as input, but can be alternatively defined. Running dimensionality reduction on highly variable genes can improve performance. 
+
+```{r}
+?RunPCA
+experiment.aggregate <- RunPCA(
+  object = experiment.aggregate,
+  pc.genes = experiment.aggregate@var.genes,
+  do.print = TRUE,
+  pcs.print = 1:5,
+  genes.print = 5,
+  pcs.compute = 40,
+  maxit = 500)
+
+PrintPCAParams(experiment.aggregate)
+```
+
+Seurat then provides a number of ways to visualize the PCA results
+```{r}
+PCAPlot(
+  object = experiment.aggregate,
+  dim.1 = 1,
+  dim.2 = 2 )
+```
+
+Visualize top genes associated with principal components
+```{r}
+VizPCA(
+  object = experiment.aggregate,
+  pcs.use=1:2
+)
+```
+
+Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
+
+```{r}
+PCHeatmap(
+    object = experiment.aggregate, 
+    pc.use = 1:6, 
+    cells.use = 500, 
+    do.balanced = TRUE, 
+    label.columns = FALSE,
+    use.full = FALSE
+)
+PCHeatmap(
+    object = experiment.aggregate, 
+    pc.use = 7:12, 
+    cells.use = 500, 
+    do.balanced = TRUE, 
+    label.columns = FALSE,
+    use.full = FALSE
+)
+```
+
+### Selecting which PCs to use
+To overcome the extensive technical noise in any single gene, Seurat clusters cells based on their PCA scores, with each PC essentially representing a metagene that combines information across a correlated gene set. Determining how many PCs to include downstream is therefore an important step. 
+
+PCElbowPlot plots the standard deviations (or approximate singular values if running PCAFast) of the principle components for easy identification of an elbow in the graph. This elbow often corresponds well with the significant PCs and is much faster to run.
+
+```{r}
+PCElbowPlot(
+  experiment.aggregate,
+  num.pc = 40)
+```
+
+The JackStraw function randomly permutes a subset of data, and calculates projected PCA scores for these 'random' genes. Then compares the PCA scores for the 'random' genes with the observed PCA scores to determine statistical signifance. End result is a p-value for each gene's association with each principal component. We identify significant PCs as those who have a strong enrichment of low p-value genes.
+
+__WARNING: TAKES A LONG TIME TO RUN__
+```{r}
+experiment.aggregate <- JackStraw(
+    object = experiment.aggregate, 
+    num.replicate = 100, 
+    num.pc = 40,
+    do.print = FALSE
+)
+```
+
+```{r}
+JackStrawPlot(object = experiment.aggregate, PCs = 1:40, nCol = 5)
+```
+
+Looking at the results of the JackStraw plot, we determine to use the first 35 PCs
+```{r}
+use.pcs = 1:35
+```
+
+
+## Session Information
+```{r}
+sessionInfo()
+```
