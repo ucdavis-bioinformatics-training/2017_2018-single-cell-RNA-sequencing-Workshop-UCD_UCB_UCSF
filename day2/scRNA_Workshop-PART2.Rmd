@@ -1,7 +1,6 @@
 ---
 title: "single cell 10x single-cell analysis - part2"
 author: "UC Davis Bioinformatics Core"
-date: "3/20/2018"
 output:
   html_document:
     keep_md: true
