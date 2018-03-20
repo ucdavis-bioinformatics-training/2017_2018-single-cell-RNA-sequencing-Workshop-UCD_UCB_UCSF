@@ -1,0 +1,93 @@
+---
+title: "single cell 10x single-cell analysis - part3"
+author: "UC Davis Bioinformatics Core"
+output:
+  html_document:
+    keep_md: true
+---
+
+## Load the Seurat object
+```{r}
+load(file="pre_sample_corrected.RData")
+experiment.aggregate
+```
+
+## Exploring Batch effects 3 ways, none, Seurat [vars.to.regress] and COMBAT
+
+First lets view the data without any corrections
+
+## PCA in prep for tSNE
+
+ScaleData - Scales and centers genes in the dataset. 
+```{r, echo=FALSE}
+?ScaleData
+experiment.aggregate.noc <- ScaleData(object = experiment.aggregate)
+```
+
+Run PCA
+```{r, echo=FALSE, fig.align="center", fig.caption="PCA plot, first two dims"}
+experiment.aggregate.noc <- RunPCA(object = experiment.aggregate.noc, pc.genes = experiment.aggregate.noc@var.genes, do.print = FALSE, pcs.compute = 40, maxit = 500, weight.by.var = FALSE)
+PCAPlot(object = experiment.aggregate.noc, dim.1 = 1, dim.2 = 2)
+```
+
+TSNEPlot
+```{r, echo=FALSE, fig.align="center", fig.caption="TSNE plot, using first 16 pca dims"}
+experiment.aggregate.noc <- RunTSNE(object = experiment.aggregate.noc, dims.use = 1:12, do.fast = TRUE)
+TSNEPlot(object = experiment.aggregate.noc, features.plot=c("orig.ident"))
+```
+
+## Correct for sample to sample differences (seurat)
+
+Use vars.to.regress to correct for the sample to sample differences and percent mitochondria
+```{r, echo=FALSE, fig.align="center", fig.caption="PCA Plot"}
+experiment.aggregate.regress <- ScaleData(object = experiment.aggregate, 
+                                          vars.to.regress = c("orig.ident", "percent.mito"), model.use = "linear")
+
+experiment.aggregate.regress <- RunPCA(object =experiment.aggregate.regress, pc.genes = experiment.aggregate.regress@var.genes, do.print = FALSE, pcs.compute = 40, weight.by.var = FALSE)
+
+PCAPlot(object = experiment.aggregate.regress, dim.1 = 1, dim.2 = 2)
+```
+
+Corrected TSE Plot
+```{r, echo=FALSE, fig.align="center", fig.caption="Corrected TSNE Plot first 40 dimentions"}
+experiment.aggregate.regress <- RunTSNE(object = experiment.aggregate.regress, dims.use = 1:12, do.fast = TRUE)
+TSNEPlot(object = experiment.aggregate.regress, features.plot=c("orig.ident"))
+```
+
+## COMBAT corrected, https://academic.oup.com/biostatistics/article-lookup/doi/10.1093/biostatistics/kxj037
+```{r}
+source("https://bioconductor.org/biocLite.R")
+biocLite("sva")
+library(sva)
+?ComBat
+m = as.data.frame(as.matrix(experiment.aggregate@data))
+com = ComBat(dat=m, batch=experiment.aggregate@meta.data$orig.ident, prior.plots=FALSE, par.prior=TRUE)
+```
+
+
+```{r}
+experiment.aggregate.combat <- experiment.aggregate
+experiment.aggregate.combat@data = Matrix(as.matrix(com))
+experiment.aggregate.combat = ScaleData(experiment.aggregate.combat)
+```
+
+```{r}
+experiment.aggregate.combat <- RunPCA(object = experiment.aggregate.combat, pc.genes = experiment.aggregate.combat@var.genes, do.print = FALSE, pcs.compute = 40, weight.by.var = FALSE)
+
+PCAPlot(object = experiment.aggregate.combat, dim.1 = 1, dim.2 = 2)
+```
+
+
+```{r}
+experiment.aggregate.combat <- RunTSNE(object = experiment.aggregate.combat, dims.use = 1:12, do.fast = TRUE)
+TSNEPlot(object = experiment.aggregate.combat)
+```
+
+#### Question(s)
+
+1. Explore differences in regressed variables. eg remove percent.mito, add in nUMI?
+
+## Session Information
+```{r}
+sessionInfo()
+```

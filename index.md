@@ -27,6 +27,9 @@ Day 2
 * [Seurat Analysis - PART 2](day2/scRNA_Workshop-PART2.md)
 	* [The R markdown file - PART 2](day2/scRNA_Workshop-PART2.Rmd)
 
+* [Seurat Analysis - PART 3](day2/scRNA_Workshop-PART3.md)
+	* [The R markdown file - PART 3](day2/scRNA_Workshop-PART3.Rmd)
+
 Day 3
 ----------
 
