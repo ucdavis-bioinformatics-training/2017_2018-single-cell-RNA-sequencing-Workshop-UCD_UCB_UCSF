@@ -19,11 +19,13 @@ Day 1
 Day 2
 ----------
 * [Intro to R](day2/Intro2R.md)
-* [Dataset Introduction]()
+* Dataset Introduction
+* [Seurat Analysis - PART 1](day2/scRNA_Workshop-PART1.md)
+	* [The R markdown file - PART 1](day2/scRNA_Workshop-PART1.Rmd)
 * Lunch - Sponsored by 10X genomics
 * 10X genomics Technology talk
-* [Seurat Analysis](day2/scRNA_Workshop.md)
-	* [The R markdown file](day2/scRNA_Workshop.Rmd)
+* [Seurat Analysis - PART 2](day2/scRNA_Workshop-PART2.md)
+	* [The R markdown file - PART 2](day2/scRNA_Workshop-PART2.Rmd)
 
 Day 3
 ----------

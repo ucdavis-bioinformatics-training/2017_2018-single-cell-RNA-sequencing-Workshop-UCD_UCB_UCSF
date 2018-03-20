@@ -1,0 +1,115 @@
+---
+title: "single cell 10x single-cell analysis - part1"
+author: "UC Davis Bioinformatics Core"
+date: "3/20/2018"
+output:
+  html_document:
+    keep_md: true
+---
+
+[Seurat](http://satijalab.org/seurat/) is a popular R package that is designed for QC, analysis, and exploration of single cell RNA-seq data. Seurat aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. Further, the authors provide several [tutorials](http://satijalab.org/seurat/get_started.html), on their website.
+
+Dowload and expand the expression_tables.tar.gz file to extract the single cell matrix files for the three samples. These are isolated mouse cells ran on the 10X genomics platform for single cell RNA sequencing, sequenced with UC Davis on 1 HiSeq 4000.
+
+* sample1, UCD_VitE_Def
+* sample2, UCD_Supp_VitE
+* sample3, UCD_Adj_VitE
+
+We start with loading needed libraries for R, at this time all we need is the package [Seurat](http://satijalab.org/seurat/).
+```{r, warning=FALSE,echo=FALSE}
+# This is loading the package Seurat
+library(Seurat)
+```
+
+## Load the Cell Ranger Matrix Data and create the base Seurat object.
+Cell Ranger provides a function `cellranger aggr` that will combine multiple samples into a single matrix file. However, when processing data in R and Seurat this is unnecessary and we can aggregate them in R.
+
+Seurat provides a function `Read10X` to read in 10X data folder. First we read in data from each individual sample folder. First, we initialize the Seurat object (`CreateSeuratObject`) with the raw (non-normalized data). Keep all genes expressed in >= 10 cells. Keep all cells with at least 200 detected genes. Also extracting sample names, calculating and adding in the metadata mitochondrial percentage of each cell. Adding in the metadata batchid. Finally, saving the raw Seurat object.
+```{r}
+## Dataset for analysis
+dataset_loc <- "expression_tables"
+ids <- c("sample1", "sample2", "sample3")
+
+d10x.data <- sapply(ids, function(i){
+  d10x <- Read10X(file.path(dataset_loc,i,"outs/filtered_gene_bc_matrices/mm10/"))
+  colnames(d10x) <- paste(sapply(strsplit(colnames(d10x),split="-"),'[[',1L),i,sep="-")
+  d10x
+})
+
+experiment.data <- do.call("cbind", d10x.data)
+
+experiment.aggregate <- CreateSeuratObject(
+  experiment.data,
+  project = "scRNA workshop", 
+  min.cells = 10,
+  min.genes = 200,
+  names.field = 2,
+  names.delim = "\\-")
+```
+### Calc mitocondrial content
+Calculate percent mitochondrial genes per cell. In mouse these genes can be identified as those that begin with 'mt', in human data they begin with MT.
+```{r}
+mito.genes <- grep("^mt-", rownames(experiment.aggregate@data), value = T)
+percent.mito <- Matrix::colSums(experiment.aggregate@raw.data[mito.genes, ]) / Matrix::colSums(experiment.aggregate@raw.data)
+
+# AddMetaData adds columns to object@data.info, and is a great place to stash QC stats
+experiment.aggregate <- AddMetaData(
+  object = experiment.aggregate,
+  metadata = percent.mito,
+  col.name= "percent.mito")
+```
+### Lets fix the sample names, reassign names with more meaningful factors
+
+The original samples names (the names above in ids) can be found in the metadata slot, column orig.ident. Here we build a new metadata variable 'batchid' which can be used to specify treatment groups.
+```{r}
+samplename = experiment.aggregate@meta.data$orig.ident
+table(samplename)
+
+batchid = rep("UCD_VitE_Def",length(samplename))
+batchid[samplename %in% c("sample2")] = "UCD_Supp_VitE"
+batchid[samplename %in% c("sample3")] = "UCD_Adj_VitE"
+names(batchid) = rownames(experiment.aggregate@meta.data)
+
+experiment.aggregate <- AddMetaData(
+  object = experiment.aggregate,
+  metadata = batchid,
+  col.name = "batchid")
+
+table(experiment.aggregate@meta.data$batchid)
+```
+### Lets spend a little time getting to know the Seurat object.
+
+The Seurat object is the center of each single cell analysis. It stores __all__ information associated with the dataset, including data, annotations, analyes, etc. The R function slotNames can be used to view the slot names within an object.
+
+```{r}
+slotNames(experiment.aggregate)
+```
+
+We can then few the data within a slot with the `@` operator.
+```{r}
+head(experiment.aggregate@meta.data)
+```
+
+```{r}
+table(experiment.aggregate@meta.data$orig.ident)
+```
+
+#### Question(s)
+
+1. What slots are empty, what slots have data?
+2. What columns are available in meta.data?
+3. Look up the help documentation for filter?
+
+## Finally, save the original object, write out a tab-delimited table that could be read into excel, and view the object.
+```{r}
+# write.table(as.matrix(experiment.data),"raw.datatable.txt",sep="\t",col.names=T,row.names=T)
+experiment.aggregate
+
+## Original dataset in Seurat class, with no filtering
+save(experiment.aggregate,file="original_seurat_object.RData")
+```
+
+## Session Information
+```{r}
+sessionInfo()
+```
