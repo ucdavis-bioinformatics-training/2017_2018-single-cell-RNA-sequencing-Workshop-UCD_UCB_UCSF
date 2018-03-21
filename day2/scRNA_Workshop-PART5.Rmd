@@ -1,0 +1,294 @@
+---
+title: "single cell 10x single-cell analysis - part5"
+author: "UC Davis Bioinformatics Core"
+output:
+  html_document:
+    keep_md: true
+---
+
+
+## Load the Seurat object
+```{r}
+load(file="pca_sample_corrected.RData")
+experiment.aggregate
+```
+
+## Identifying clusters
+
+Seurat implements an graph-based clustering approach. Distances between the cells are calculated based on previously identified PCs. Seurat approach was heavily inspired by recent manuscripts which applied graph-based clustering approaches to scRNAseq data. Briefly, Seurat identify clusters of cells by a shared nearest neighbor (SNN) modularity optimization based clustering algorithm. First calculate k-nearest neighbors (KNN) and construct the SNN graph. Then optimize the modularity function to determine clusters. For a full description of the algorithms, see Waltman and van Eck (2013) The European Physical Journal B.
+
+The FindClusters function implements the procedure, and contains a resolution parameter that sets the granularity of the downstream clustering, with increased values leading to a greater number of clusters. I tend to like to perform a series of resolutions, investigate and choose.
+
+__WARNING: TAKES A LONG TIME TO RUN__
+```{r}
+use.pcs = 1:35
+
+experiment.aggregate <- FindClusters(
+    object = experiment.aggregate, 
+    reduction.type = "pca", 
+    dims.use = use.pcs, 
+    resolution = seq(0.5,4,0.5), 
+    print.output = FALSE, 
+    save.SNN = TRUE
+)
+PrintFindClustersParams(object = experiment.aggregate)
+```
+
+Lets first investigate how many clusters each resolution produces and set it to the smallest resolutions of 0.5 (fewest clusters). finnaly lets produce a table of cluster to sample assignments.
+
+```{r}
+sapply(grep("^res",colnames(experiment.aggregate@meta.data),value = TRUE),
+       function(x) length(unique(experiment.aggregate@meta.data[,x])))
+
+experiment.aggregate <- SetAllIdent(experiment.aggregate, id = "res.0.5")
+
+table(experiment.aggregate@ident,experiment.aggregate@meta.data$orig.ident)
+```
+
+tSNE dimensionality reduction plots are then used to visualise clustering results. As input to the tSNE, you should use the same PCs as input to the clustering analysis.
+
+```{r}
+experiment.aggregate <- RunTSNE(
+  object = experiment.aggregate,
+  reduction.use = "pca",
+  dims.use = 1:35,
+  do.fast = TRUE)
+```
+
+
+Plot TSNE coloring by the slot 'ident' (default).
+```{r}
+TSNEPlot(object = experiment.aggregate, pt.size=0.5)
+```
+
+Plot TSNE coloring by the slot 'orig.ident' (sample names).
+```{r}
+TSNEPlot(object = experiment.aggregate, group.by="orig.ident", pt.size=0.5)
+```
+
+Plot TSNE coloring by the clustering resolution 4.5
+```{r}
+TSNEPlot(object = experiment.aggregate, group.by="res.4", pt.size=0.5, do.label = TRUE)
+```
+
+FeaturePlot can be used to color cells with a 'feature', non categorical data, like number of UMIs
+```{r}
+FeaturePlot(experiment.aggregate, features.plot=c('nUMI'), pt.size=0.5)
+```
+and number of genes present
+```{r}
+FeaturePlot(experiment.aggregate, features.plot=c('nGene'), pt.size=0.5)
+```
+
+and percent mitochondrial 
+```{r}
+FeaturePlot(experiment.aggregate, features.plot=c('percent.mito'), pt.size=0.5)
+```
+
+## Building  a  tree relating the 'average' cell from each cluster. Tree is estimated based on a distance matrix constructed in either gene expression space or PCA space.
+
+```{r}
+experiment.aggregate <- BuildClusterTree(
+  experiment.aggregate,
+  pcs.use = use.pcs,
+  do.reorder = F,
+  reorder.numeric = F,
+  do.plot=F)
+
+PlotClusterTree(experiment.aggregate)
+```
+
+Plot the split at node 30
+```{r}
+ColorTSNESplit(experiment.aggregate, node = 30)
+```
+
+```{r}
+TSNEPlot(object = experiment.aggregate, pt.size=0.5, do.label = TRUE)
+```
+
+```{r}
+experiment.merged <- RenameIdent(
+  object = experiment.aggregate,
+  old.ident.name = c('14'),
+  new.ident.name = '0'
+)
+TSNEPlot(object = experiment.merged, pt.size=0.5, do.label = T)
+```
+
+## Identifying Marker Genes
+
+Seurat can help you find markers that define clusters via differential expression.
+
+`FindMarkers` identifies markers for a cluster relative to all other clusters.
+
+`FindAllMarkers` does so for all clusters
+
+`FindAllMarkersNode` defines all markers that split a Node __(Warning: need to validate)__
+
+```{r}
+?FindMarkers
+
+markers = FindMarkers(experiment.aggregate, ident.1=c(0,14), genes.use=rownames(experiment.aggregate@scale.data))
+
+head(markers)
+dim(markers)
+table(markers$avg_logFC > 0)
+
+```
+
+ 
+pct.1 and pct.2 are the proportion of cells with expression above 0 in ident.1 and ident.2 respectively. p_val is the raw p_value associated with the differntial expression test with adjusted value in p_val_adj. avg_logFC is the average log fold change difference between the two groups. 
+ 
+avg_diff (lines 130, 193 and) appears to be the difference in log(x = mean(x = exp(x = x) - 1) + 1) between groups.  It doesn’t seem like this should work out to be the signed ratio of pct.1 to pct.2 so I must be missing something.  It doesn’t seem to be related at all to how the p-values are calculated so maybe it doesn’t matter so much, and the sign is probably going to be pretty robust to how expression is measured.
+
+Can use a violin plot to visualize the expression pattern of some markers
+```{r}
+VlnPlot(object = experiment.aggregate, features.plot = rownames(markers)[1:2])
+```
+
+Or a feature plot
+```{r}
+FeaturePlot(
+    experiment.aggregate, 
+    head(rownames(markers)), 
+    cols.use = c("lightgrey", "blue"), 
+    nCol = 3
+)
+
+FeaturePlot(
+    experiment.aggregate, 
+    "Lpar3", 
+    cols.use = c("lightgrey", "blue") 
+)
+```
+
+FindAllMarkers can be used to automate the process across all genes.
+__WARNING: TAKES A LONG TIME TO RUN__
+
+```{r}
+markers_all <- FindAllMarkers(
+    object = experiment.aggregate, 
+    only.pos = TRUE, 
+    min.pct = 0.25, 
+    thresh.use = 0.25
+)
+dim(markers_all)
+table(table(markers_all$gene))
+
+markers_all_single <- markers_all[markers_all$gene %in% names(table(markers_all$gene))[table(markers_all$gene) == 1],]
+
+dim(markers_all_single)
+table(table(markers_all_single$gene))
+
+table(markers_all_single$cluster)
+
+head(markers_all_single)
+```
+
+Plot a heatmap of genes by cluster for the top 5 marker genes per cluster
+```{r}
+#install.packages("dplyr")
+library(dplyr)
+top5 <- markers_all_single %>% group_by(cluster) %>% top_n(5, avg_logFC)
+dim(top5)
+DoHeatmap(
+    object = experiment.aggregate, 
+    genes.use = top5$gene, 
+    slim.col.label = TRUE, 
+    remove.key = TRUE
+)
+```
+
+```{r}
+
+# Get expression of 
+getGeneClusterMeans <- function(gene, cluster){
+  x <- experiment.aggregate@data[gene,]
+  m <- tapply(x, ifelse(experiment.aggregate@ident == cluster, 1, 0), mean)
+  mean.in.cluster <- m[2]
+  mean.out.of.cluster <- m[1]
+  return(list(mean.in.cluster = mean.in.cluster, mean.out.of.cluster = mean.out.of.cluster))
+}
+
+## for sake of time only using first six (head)
+means <- mapply(getGeneClusterMeans, head(markers_all[,"gene"]), head(markers_all[,"cluster"]))
+means <- matrix(unlist(means), ncol = 2, byrow = T)
+
+colnames(means) <- c("mean.in.cluster", "mean.out.of.cluster")
+markers_all2 <- cbind(head(markers_all), means)
+
+```
+
+## Finishing up clusters.
+
+At this point in time you should use the tree, markers, domain knowledge, and goals to finalize your clusters. This may mean adjusting PCA to use, mergers clusters together, choosing a new resolutions, etc. When finished you can further name it cluster by something more informative. Ex.
+```{r}
+experiment.clusters <- experiment.aggregate
+experiment.clusters <- RenameIdent(
+  object = experiment.clusters,
+  old.ident.name = c('0'),
+  new.ident.name = 'cell_type_A'
+)
+
+TSNEPlot(object = experiment.clusters, pt.size=0.5, do.label = T)
+
+experiment.aggregate <- AddMetaData(
+  object = experiment.aggregate,
+  metadata = experiment.aggregate@ident,
+  col.name = "finalcluster")
+```
+
+## Subsetting samples
+```{r}
+experiment.sample2 <- SubsetData(
+  object = experiment.aggregate,
+  cells.use = rownames(experiment.aggregate@meta.data)[experiment.aggregate@meta.data$orig.ident %in% c("sample2")])
+
+TSNEPlot(object = experiment.sample2, group.by="res.0.5", pt.size=0.5, do.label = TRUE)
+
+FeaturePlot(experiment.sample2, features.plot=c('Calca'), pt.size=0.5)
+FeaturePlot(experiment.sample2, features.plot=c('Adcyap1'), pt.size=0.5)
+```
+
+### Adding in a new metadata column representing samples within clusters
+
+```{r}
+samplecluster = paste(experiment.aggregate@meta.data$orig.ident,experiment.aggregate@meta.data$finalcluster,sep = '-')
+
+names(samplecluster) = rownames(experiment.aggregate@meta.data)
+head(samplecluster)
+
+experiment.aggregate <- AddMetaData(
+  object = experiment.aggregate,
+  metadata = samplecluster,
+  col.name = "samplecluster")
+
+# set the identity to the new variable 
+experiment.aggregate <- SetAllIdent(experiment.aggregate, id = "samplecluster")
+
+markers.comp <- FindMarkers(experiment.aggregate, ident.1 = "sample1-0", ident.2= "sample2-0")
+
+markers.comp <- FindMarkers(experiment.aggregate, ident.1 = "sample1-0", ident.2= "sample3-0")
+
+DoHeatmap(experiment.aggregate,
+          use.scaled = TRUE,
+          cells.use=rownames(experiment.aggregate@meta.data)[experiment.aggregate@meta.data$samplecluster %in% c( "sample1-0", "sample2-0" )],
+          genes.use = rownames(markers.comp),
+          slim.col.label = TRUE
+          )
+
+experiment.aggregate <- SetAllIdent(experiment.aggregate, id = "finalcluster")
+
+```
+
+And last lets save all the objects in our session.
+```{r}
+save(list=ls(), file="clusters_seurat_object.RData")
+```
+
+## Session Information
+```{r}
+sessionInfo()
+```
+

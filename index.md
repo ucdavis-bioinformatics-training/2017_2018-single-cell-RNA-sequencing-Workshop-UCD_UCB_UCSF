@@ -38,8 +38,8 @@ Day 3
 * [Experimental Design](day3/singlecellRNAseq-expDesign.pdf)
 * Lunch - Sponsored by Illumina
 * Illumina Technology talk
-* [Continued Seurat Analysis](day2/scRNA_Workshop.md)
-	* [The R markdown file](day2/scRNA_Workshop.Rmd)
+* [Seurat Analysis - PART 5](day2/scRNA_Workshop-PART5.md)
+	* [The R markdown file - PART 5](day2/scRNA_Workshop-PART5.Rmd)
 * [Closing Thoughts](day3/Closing_Thoughts.pdf)
 
 Evaluation!
