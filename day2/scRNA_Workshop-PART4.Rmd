@@ -1,5 +1,5 @@
 ---
-title: "single cell 10x single-cell analysis - part3"
+title: "single cell 10x single-cell analysis - part4"
 author: "UC Davis Bioinformatics Core"
 output:
   html_document:
@@ -120,6 +120,10 @@ Looking at the results of the JackStraw plot, we determine to use the first 35 P
 use.pcs = 1:35
 ```
 
+## Finally, lets save the filtered and normalized data
+```{r}
+save(experiment.aggregate, file="pca_sample_corrected.RData")
+```
 
 ## Session Information
 ```{r}
