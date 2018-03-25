@@ -33,13 +33,13 @@ Day 2
 Day 3
 ----------
 
-* [Seurat Analysis - PART 4](day2/scRNA_Workshop-PART4.md)
-	* [The R markdown file - PART 4](day2/scRNA_Workshop-PART4.Rmd)
+* [Seurat Analysis - PART 4](day3/scRNA_Workshop-PART4.md)
+	* [The R markdown file - PART 4](day3/scRNA_Workshop-PART4.Rmd)
 * [Experimental Design](day3/singlecellRNAseq-expDesign.pdf)
 * Lunch - Sponsored by Illumina
 * Illumina Technology talk
-* [Seurat Analysis - PART 5](day2/scRNA_Workshop-PART5.md)
-	* [The R markdown file - PART 5](day2/scRNA_Workshop-PART5.Rmd)
+* [Seurat Analysis - PART 5](day3/scRNA_Workshop-PART5.md)
+	* [The R markdown file - PART 5](day3/scRNA_Workshop-PART5.Rmd)
 * [Closing Thoughts](day3/Closing_Thoughts.pdf)
 
 Evaluation!

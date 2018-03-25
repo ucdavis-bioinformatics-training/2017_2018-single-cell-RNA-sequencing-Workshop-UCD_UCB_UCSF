@@ -1,0 +1,155 @@
+---
+title: "single cell 10x single-cell analysis - part2"
+author: "UC Davis Bioinformatics Core"
+output:
+  html_document:
+    keep_md: true
+---
+
+## Load the Seurat object
+```{r}
+load(file="original_seurat_object.RData")
+experiment.aggregate
+```
+
+## Some basic QA/QC of the metadata, print tables of the 5% quantiles.
+
+Show 5% qunatiles for number of genes per cell per sample
+```{r}
+do.call("cbind", tapply(experiment.aggregate@meta.data$nGene,experiment.aggregate@ident,quantile,probs=seq(0,1,0.05)))
+```
+
+Show 5% qunatiles for number of UMI per cell per sample
+```{r}
+do.call("cbind", tapply(experiment.aggregate@meta.data$nUMI,experiment.aggregate@ident,quantile,probs=seq(0,1,0.05)))
+```
+
+Show 5% qunatiles for number of mitochondrial percentage per cell per sample
+```{r}
+round(do.call("cbind", tapply(experiment.aggregate@meta.data$percent.mito,experiment.aggregate@ident,quantile,probs=seq(0,1,0.05))), digits = 3)
+```
+
+Plot the number of cells each gene is represented by
+```{r}
+plot(sort(Matrix::rowSums(experiment.aggregate@data>=2)) , xlab="gene rank", ylab="number of cells", main="Cells per genes ( >= 2 )")
+```
+
+Violin plot of 1) number of genes, 2) number of UMI and 3) percent mitochondrial genes
+```{r, fig.height=20}
+VlnPlot(
+  experiment.aggregate,
+  c("nGene", "nUMI","percent.mito"),
+  nCol = 1)
+```
+
+Gene Plot, scatter plot of gene expression across cells, (colored by sample)
+```{r}
+GenePlot(
+  experiment.aggregate, "nUMI", "nGene",
+  cex.use = 0.5)
+```
+
+### Cell filtering
+We use the information above to filter out cells. Here we choose those that have percent mitochondrial genes max of 10% and unique UMI counts under 20,000 or greater than 500, Note that low.thresholds and high.thresholds are used to define a 'gate' -Inf and Inf should be used if you don't want a lower or upper threshold.
+
+```{r}
+experiment.aggregate <- FilterCells(
+  object = experiment.aggregate,
+  subset.names = c("percent.mito"),
+  low.thresholds = c(-Inf),
+  high.thresholds = c(0.1))
+
+experiment.aggregate <- FilterCells(
+  object = experiment.aggregate,
+  subset.names = c("nUMI"),
+  low.thresholds = c(500),
+  high.thresholds = c(20000))
+
+experiment.aggregate
+```
+
+```{r}
+table(experiment.aggregate@meta.data$orig.ident)
+```
+
+## Next we want to normalize the data
+
+After filtering out cells from the dataset, the next step is to normalize the data. By default, we employ a global-scaling normalization method LogNormalize that normalizes the gene expression measurements for each cell by the total expression, multiplies this by a scale factor (10,000 by default), and then log-transforms the data.
+
+```{r}
+?NormalizeData
+experiment.aggregate <- NormalizeData(
+  object = experiment.aggregate,
+  normalization.method = "LogNormalize",
+  scale.factor = 10000)
+```
+
+### You may also want to filter out additional genes.
+
+When creating the base Seurat object we did filter out some genes, recall _Keep all genes expressed in >= 10 cells_. After filtering cells and you may want to be more aggressive with the gene filter. Seurat doesn't supply such a function (that I can find), so below is a function that can do so, it filters genes requiring a min.value (log-normalized) in at least min.cells, here expression of 1 in at least 100 cells.
+
+```{r}
+FilterGenes <- 
+function (object, min.value=1, min.cells = 0, genes = NULL) {
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FilterGenes"))]
+  object <- Seurat:::SetCalcParams(object = object, calculation = "FilterGenes", ... = parameters.to.store)
+  genes.use <- rownames(object@data)
+
+  if (!is.null(genes)) {
+    genes.use <- intersect(genes.use, genes)
+    object@data <- object@data[genes.use, ]
+    return(object)
+  } else if (min.cells > 0) {
+    num.cells <- Matrix::rowSums(object@data > min.value)
+    genes.use <- names(num.cells[which(num.cells >= min.cells)])
+    object@data <- object@data[genes.use, ]
+    return(object)
+  } else {
+    return(object)
+  }
+}
+
+experiment.aggregate <- FilterGenes(object = experiment.aggregate, min.value = 1, min.cells = 100)
+experiment.aggregate
+```
+
+## Identify variable genes
+
+The function FindVariableGenes calculates highly variable genes (genes that are outliers on a 'mean variability plot') that can be used to focus on these for downstream analysis.  First, uses a function to calculate average expression (mean.function) and dispersion (dispersion.function) for each gene. Next, divides genes into num.bin (deafult 20) bins based on their average expression, and calculates z-scores for dispersion within each bin. The purpose of this is to identify variable genes while controlling for the strong relationship between variability and average expression. This helps control for the relationship between variability and average expression.
+
+```{r}
+?FindVariableGenes
+length(FindVariableGenes(
+  object = experiment.aggregate,
+  mean.function = ExpMean,
+  dispersion.function = LogVMR,
+  x.low.cutoff = 0.24,
+  x.high.cutoff = 3,
+  y.cutoff = 0.5, do.plot=T)@var.genes)
+
+experiment.aggregate <- FindVariableGenes(
+  object = experiment.aggregate,
+  mean.function = ExpMean,
+  dispersion.function = LogVMR,
+  x.low.cutoff = 0.125,
+  x.high.cutoff = 4,
+  y.cutoff = 0.5, do.plot=F)
+
+length(experiment.aggregate@var.genes)
+```
+
+#### Question(s)
+
+1. Play some with the filtering parameters, see how results change?
+2. Increase/Decrease the y.cutoff, how do things change?
+
+
+## Finally, lets save the filtered and normalized data
+```{r}
+save(experiment.aggregate, file="pre_sample_corrected.RData")
+```
+
+## Session Information
+```{r}
+sessionInfo()
+```
