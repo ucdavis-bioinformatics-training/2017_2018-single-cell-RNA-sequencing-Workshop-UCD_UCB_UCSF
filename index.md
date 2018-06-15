@@ -42,6 +42,11 @@ Day 3
 	* [The R markdown file - PART 5](day3/scRNA_Workshop-PART5.Rmd)
 * [Closing Thoughts](day3/Closing_Thoughts.pdf)
 
+
+POST WORKSHOP ADDITION
+* [Seurat Analysis - PART 6](day3/scRNA_Workshop-PART6.md)
+	* [The R markdown file - PART 6](day3/scRNA_Workshop-PART6.Rmd)
+
 Evaluation!
 ----------
 Please help us improve future workshops, for you and others, by filling out an [evaluation]().

@@ -1,0 +1,135 @@
+---
+title: "single cell 10x single-cell analysis - part6"
+author: "UC Davis Bioinformatics Core"
+output:
+  html_document:
+    keep_md: true
+---
+
+
+
+#0. Setup
+Load the final Seurat object, load libraries (also see additional required packages for each example)
+```{r, echo = F}
+options(width = 450)
+library(Seurat)
+load("clusters_seurat_object.RData")
+```
+
+#1. DE With Single Cell Data Using Limma
+For differential expression using models more complex than those allowed by FindAllMarkers(), data from Seurat may be used in limma (https://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf)
+
+We illustrate by comparing sample 1 to sample 2 within cluster 0:
+```{r}
+library(limma)
+cluster0 <- SubsetData(experiment.aggregate, ident.use = 0)
+expr <- cluster0@data
+
+# Filter out genes that are 0 for every cell in this cluster
+bad <- which(rowSums(expr) == 0)
+expr <- expr[-bad,]
+
+mm <- model.matrix(~0 + orig.ident, data = cluster0@meta.data) 
+fit <- lmFit(expr, mm)  
+head(coef(fit)) # means in each sample for each gene
+contr <- makeContrasts(orig.identsample2 - orig.identsample1, levels = colnames(coef(fit)))
+tmp <- contrasts.fit(fit, contrasts = contr)
+tmp <- eBayes(tmp)
+topTable(tmp, sort.by = "P", n = 20) # top 20 DE genes
+```
+* logFC: log2 fold change (sample2/sample1)
+* AveExpr: Average expression, in log2 counts per million, across all cells included in analysis (i.e. those in cluster 0)
+* t: t-statistic, i.e. logFC divided by its standard error
+* P.Value: Raw p-value from test that logFC differs from 0
+* adj.P.Val: Benjamini-Hochberg false discovery rate adjusted p-value
+
+The limma vignette linked above gives more detail on model specification.
+
+# 2. Gene Ontology (GO) Enrichment of Genes Expressed in a Cluster
+```{r}
+library(topGO)
+# install org.Mm.eg.db if not already installed (for mouse only)
+# install.packages("org.Mm.eg.db") 
+cluster0 <- SubsetData(experiment.aggregate, ident.use = 0)
+expr <- cluster0@data
+# Select genes that are expressed > 0 in at least 75% of cells (somewhat arbitrary definition)
+n.gt.0 <- apply(expr, 1, function(x)length(which(x > 0)))
+expressed.genes <- rownames(expr)[which(n.gt.0/ncol(expr) >= 0.75)]
+all.genes <- rownames(expr)
+
+# define geneList as 1 if gene is in expressed.genes, 0 otherwise
+geneList <- ifelse(all.genes %in% expressed.genes, 1, 0)
+names(geneList) <- all.genes
+
+# Create topGOdata object
+	GOdata <- new("topGOdata",
+		ontology = "BP", # use biological process ontology
+		allGenes = geneList,
+		geneSelectionFun = function(x)(x == 1),
+              annot = annFUN.org, mapping = "org.Mm.eg.db", ID = "symbol")
+# Test for enrichment using Fisher's Exact Test
+	resultFisher <- runTest(GOdata, algorithm = "elim", statistic = "fisher")
+	GenTable(GOdata, Fisher = resultFisher, topNodes = 20, numChar = 60)
+
+```
+* Annotated: number of genes (out of all.genes) that are annotated with that GO term
+* Significant: number of genes that are annotated with that GO term and meet our criteria for "expressed"
+* Expected: Under random chance, number of genes that would be expected to be annotated with that GO term and meeting our criteria for "expressed"
+* Fisher: (Raw) p-value from Fisher's Exact Test
+
+#3. Weighted Gene Co-Expression Network Analysis (WGCNA)
+WGCNA identifies groups of genes ("modules") with correlated expression.
+WARNING: TAKES A LONG TIME TO RUN
+```{r}
+library(WGCNA)
+options(stringsAsFactors = F)
+datExpr <- t(experiment.aggregate@data)[,experiment.aggregate@var.genes]  # only use var.genes in analysis 
+
+net <- blockwiseModules(datExpr, power = 10,
+  corType = "bicor", # use robust correlation
+	networkType = "signed", minModuleSize = 10,
+	reassignThreshold = 0, mergeCutHeight = 0.15,
+	numericLabels = F, pamRespectsDendro = FALSE,
+	saveTOMs = TRUE,
+	saveTOMFileBase = "TOM",
+	verbose = 3)
+
+table(net$colors)
+# Convert labels to colors for plotting
+mergedColors = net$colors
+# Plot the dendrogram and the module colors underneath
+plotDendroAndColors(net$dendrograms[[1]], mergedColors[net$blockGenes[[1]]],
+"Module colors",
+dendroLabels = FALSE, hang = 0.03,
+addGuide = TRUE, guideHang = 0.05)
+```
+Genes in grey module are unclustered.
+
+What genes are in the "blue" module?
+```{r}
+colnames(datExpr)[net$colors == "blue"]
+```
+
+Each cluster is represented by a summary "eigengene".
+Plot eigengenes for each non-grey module by clusters from Seurat:
+```{r}
+f <- function(module){
+  eigengene <- unlist(net$MEs[paste0("ME", module)])
+  means <- tapply(eigengene, experiment.aggregate@ident, mean, na.rm = T)
+  return(means)
+}
+modules <- c("blue", "brown", "green", "turquoise", "yellow")
+plotdat <- sapply(modules, f)
+matplot(plotdat, col = modules, type = "l", lwd = 2, xaxt = "n", xlab = "Seurat Cluster",
+        ylab = "WGCNA Module Eigengene")
+axis(1, at = 1:16, labels = 0:15)
+matpoints(plotdat, col = modules, pch = 21)
+```
+
+```{r}
+sessionInfo()
+```
+
+
+
+
